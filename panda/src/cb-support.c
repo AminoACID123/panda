@@ -142,6 +142,11 @@ MAKE_CALLBACK(void, AFTER_MACHINE_INIT, after_machine_init,
 MAKE_CALLBACK(void, DURING_MACHINE_INIT, during_machine_init,
                     MachineState*, machine);
 
+MAKE_CALLBACK_NO_ARGS(void, AFTER_RECORD_BEGIN, after_record_begin);
+MAKE_CALLBACK_NO_ARGS(void, AFTER_RECORD_END, after_record_end);
+MAKE_CALLBACK_NO_ARGS(void, AFTER_REPLAY_BEGIN, after_replay_begin);
+MAKE_CALLBACK_NO_ARGS(void, AFTER_REPLAY_END, after_replay_end);
+
 // Returns true if any registered&enabled callback returns non-zero.
 // If so, we'll silence the memory write error.
 MAKE_CALLBACK(bool, UNASSIGNED_IO_WRITE, unassigned_io_write,

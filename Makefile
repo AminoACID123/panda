@@ -293,6 +293,7 @@ endif
 dummy := $(call unnest-vars,, \
                 stub-obj-y \
                 chardev-obj-y \
+				afl-obj-y \
                 util-obj-y \
                 qga-obj-y \
                 ivshmem-client-obj-y \

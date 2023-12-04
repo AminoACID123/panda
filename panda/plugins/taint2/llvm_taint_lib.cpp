@@ -36,6 +36,7 @@ PANDAENDCOMMENT */
 #include <llvm/Transforms/Utils/Cloning.h>
 #include <llvm/IR/Instruction.h>
 
+#include "panda/debug.h"
 #include "panda/rr/rr_log.h"
 #include "panda/plugin.h"
 #include "panda/plugin_plugin.h"
@@ -168,7 +169,7 @@ void taint_branch_run(Shad *shad, uint64_t src, uint64_t size, uint64_t concrete
         }
         else if (opcode == llvm::Instruction::Switch) {
             // Switch probably extinct during tcg llvm translation
-            CINFO(llvm::errs() << "Tainted switch: " << *I << "\n");
+            // CINFO(llvm::errs() << "Tainted switch: " << *I << "\n");
             CINFO(std::cerr << "Tracking for switch inst not implemented\n");
             assert(false);
         }
@@ -496,8 +497,9 @@ void PandaTaintVisitor::inlineCall(CallInst *CI) {
     assert(CI && "CallInst can't be null");
     if (inline_taint) {
         InlineFunctionInfo IFI;
-        if (!InlineFunction(*CI, IFI).isSuccess()) {
-            printf("Inlining failed!\n");
+        InlineResult&& result = InlineFunction(*CI, IFI);
+        if (!result.isSuccess()) {
+            printf("Inlining failed: %s\n", result.getFailureReason());
         }
     }
 }
@@ -968,7 +970,7 @@ void PandaTaintVisitor::insertTaintMul(Instruction &I, Value *dest,
 
     const uint64_t maxBitWidth = 128;
     unsigned src1BitWidth = src1->getType()->getPrimitiveSizeInBits();
-    unsigned src2BitWidth = src1->getType()->getPrimitiveSizeInBits();
+    unsigned src2BitWidth = src2->getType()->getPrimitiveSizeInBits();
     if ((src1BitWidth > maxBitWidth) || (src2BitWidth > maxBitWidth)) {
         printf("warning: encountered a value greater than %lu bits - not "
                "attempting to propagate taint through mul instruction\n",
@@ -1103,10 +1105,16 @@ void PandaTaintVisitor::insertTaintBranch(Instruction &I, Value *cond) {
 
     Instruction *Cast = llvm::CastInst::CreateZExtOrBitCast(cond, 
             llvm::Type::getInt64Ty(*ctx), "", &I);
-    vector<Value *> args { llvConst,
-        constSlot(cond), const_uint64(getValueSize(cond)), Cast,
-		const_uint64(I.getOpcode()),
-        ConstantInt::get(int1T, ptfp->processingHelper()) };
+
+    vector<Value *> args { 
+        llvConst,   // Shad
+        constSlot(cond),    // src
+        const_uint64(getValueSize(cond)),   // size 
+        Cast,   // concrete
+		const_uint64(I.getOpcode()), // opcode
+        ConstantInt::get(int1T, ptfp->processingHelper()) // from_helper
+    };
+
 
     insertCallBefore(I, branch_runF, args);
 }

@@ -106,6 +106,12 @@ GENERATED_FILES += $(PANDA_API_EXT)
 panda/src/callbacks.o: $(SRC_PATH)/panda/include/panda/callbacks/cb-support.h $(SRC_PATH)/panda/include/panda/callbacks/cb-defs.h
 
 # All of these will be generated according to rules in rules.mak
+obj-y += panda/src/buzzer_loader.o
+obj-y += panda/src/buzzer_preload.o
+obj-y += panda/src/buzzer_main.o
+# obj-y += panda/src/buzzer_fuzz.o
+obj-y += panda/src/buzzer_userspace.o
+# obj-y += panda/src/buzzer_random.o
 obj-y += panda/src/callbacks.o
 obj-y += panda/src/cb-support.o
 obj-y += panda/src/common.o
@@ -126,6 +132,13 @@ obj-y += plog.pb.o
 $(RR_PRINT_PROG): panda/src/rr/rr_print.o panda/src/rr/panda_rr2.o 
 	$(call LINK,$^)
 
+buzzer_loader: panda/src/buzzer_loader.o
+	$(call LINK,$^)
+
+buzzer_preload.so: LDFLAGS+=-shared
+buzzer_preload.so: panda/src/buzzer_preload.o
+	$(call LINK,$^)
+
 $(PLOG_READER_PROG): panda/src/example_plog_reader.o \
 	plog.pb.o \
 	panda/src/plog-cc.o \
@@ -133,6 +146,10 @@ $(PLOG_READER_PROG): panda/src/example_plog_reader.o \
 	#panda/src/plog.o \
 
 	$(call LINK,$^)
+
+PROGS+=buzzer_preload.so
+
+PROGS+=buzzer_loader
 
 PROGS+=$(RR_PRINT_PROG)
 

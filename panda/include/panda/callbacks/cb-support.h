@@ -79,6 +79,10 @@ bool panda_callbacks_qmp(char *command, char *args, char **result);
 int panda_callbacks_before_loadvm(void);
 void panda_callbacks_replay_hd_transfer(CPUState *env, uint32_t type, target_ptr_t src_addr, target_ptr_t dest_addr, size_t num_bytes);
 void panda_callbacks_after_machine_init(CPUState *env);
+void panda_callbacks_after_record_begin(void);
+void panda_callbacks_after_record_end(void);
+void panda_callbacks_after_replay_begin(void);
+void panda_callbacks_after_replay_end(void);
 void panda_callbacks_after_loadvm(CPUState *env);
 
 /* invoked from cpu-exec.c */

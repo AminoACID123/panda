@@ -25,6 +25,8 @@ block-obj-y += write-threshold.o
 block-obj-y += backup.o
 block-obj-$(CONFIG_REPLICATION) += replication.o
 
+block-obj-y += privmem.o
+
 block-obj-y += crypto.o
 
 common-obj-y += stream.o

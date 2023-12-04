@@ -3333,6 +3333,54 @@ Enable KVM full virtualization support. This option is only available
 if KVM support is enabled when compiling.
 ETEXI
 
+DEF("enable-asan", 0, QEMU_OPTION_enable_asan, \
+    "-enable-asan     enable address sanitizer in buzzer\n", QEMU_ARCH_ALL)
+STEXI
+@item -enable-asan
+@findex -enable-asan
+Enable address sanitizer in buzzer
+ETEXI
+
+DEF("args", HAS_ARG, QEMU_OPTION_args, \
+    "-args      arguments passed to buzzer target\n", QEMU_ARCH_ALL)
+STEXI
+@item -args @var{str}
+@findex -args
+Set the arguments passed to buzzer target.
+ETEXI
+
+DEF("out", HAS_ARG, QEMU_OPTION_out, \
+    "-out      directory to store fuzz output\n", QEMU_ARCH_ALL)
+STEXI
+@item -out @var{str}
+@findex -out
+Set the directory to store fuzz output.
+ETEXI
+
+DEF("target-file", HAS_ARG, QEMU_OPTION_target_file, \
+    "-target-file      set the filename for buzzer target\n", QEMU_ARCH_ALL)
+STEXI
+@item -target-file @var{file}
+@findex -target-file
+Set the filename for buzzer target.
+ETEXI
+
+DEF("target-dir", HAS_ARG, QEMU_OPTION_target_dir, \
+    "-target-dir      set the directory for buzzer target\n", QEMU_ARCH_ALL)
+STEXI
+@item -target-dir @var{file}
+@findex -target-dir
+Set the directory for buzzer target.
+ETEXI
+
+DEF("bt-dev", HAS_ARG, QEMU_OPTION_bt_dev, \
+    "-bt-dev n      set Bluetooth HCI device number\n", QEMU_ARCH_ALL)
+STEXI
+@item -bt-dev @var{n}
+@findex -bt-dev
+Set Bluetooth HCI device number
+ETEXI
+
 DEF("enable-hax", 0, QEMU_OPTION_enable_hax, \
     "-enable-hax     enable HAX virtualization support\n", QEMU_ARCH_I386)
 STEXI

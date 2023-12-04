@@ -31,6 +31,7 @@ PANDAENDCOMMENT */
 #include "panda/helper_runtime.h"
 #endif
 
+#include "panda/buzzer.h"
 #include "panda/common.h"
 #include "panda/rr/rr_api.h"
 #include "panda/callbacks/cb-trampolines.h"
@@ -306,6 +307,36 @@ bool panda_load_plugin(const char *filename, const char *plugin_name) {
   return _panda_load_plugin(filename, plugin_name, false);
 }
 
+static void buzzer_load_plugin(const char* plugin_name) {
+    char* filename = panda_plugin_path(plugin_name);
+    void *plugin = dlopen(filename, RTLD_NOW);
+
+    const char *init_plugin = "init_plugin";
+    bool (*init_fn)(void *) = dlsym(plugin, init_plugin);
+
+    panda_plugins[nb_panda_plugins].plugin = plugin;
+    panda_plugins[nb_panda_plugins].unload = false;
+    panda_plugins[nb_panda_plugins].exported_symbols = false;
+    panda_plugins[nb_panda_plugins].name = g_strdup(plugin_name);
+    panda_plugins[nb_panda_plugins].init_fn = init_fn;
+
+    do_check_export_symbols(&panda_plugins[nb_panda_plugins], filename);
+
+    nb_panda_plugins++;
+}
+
+void buzzer_load_plugins(void) {
+    buzzer_load_plugin("callstack_instr");
+    buzzer_load_plugin("taint2");
+    buzzer_load_plugin("buzzer");
+}
+
+void buzzer_init_plugins(void) {
+    for (int i=0; i < nb_panda_plugins; i++) {
+        panda_plugins[i].init_fn(panda_plugins[i].plugin);
+    }
+}
+
 extern const char *qemu_file;
 
 // Resolve a file in the plugin directory to a path. If the file doesn't
@@ -528,6 +559,10 @@ panda_cb_with_context panda_get_cb_trampoline(panda_cb_type type) {
         CASE_CB_TRAMPOLINE(AFTER_CPU_EXEC_ENTER,after_cpu_exec_enter)
         CASE_CB_TRAMPOLINE(BEFORE_CPU_EXEC_EXIT,before_cpu_exec_exit)
         CASE_CB_TRAMPOLINE(AFTER_MACHINE_INIT,after_machine_init)
+        CASE_CB_TRAMPOLINE(AFTER_RECORD_BEGIN,after_record_begin)
+        CASE_CB_TRAMPOLINE(AFTER_RECORD_END,after_record_end)
+        CASE_CB_TRAMPOLINE(AFTER_REPLAY_BEGIN,after_replay_begin)
+        CASE_CB_TRAMPOLINE(AFTER_REPLAY_END,after_replay_end)
         CASE_CB_TRAMPOLINE(AFTER_LOADVM,after_loadvm)
         CASE_CB_TRAMPOLINE(TOP_LOOP,top_loop)
         CASE_CB_TRAMPOLINE(DURING_MACHINE_INIT,during_machine_init)

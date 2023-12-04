@@ -7,6 +7,7 @@
 #endif
 #define SHAD_LLVM
 #include "taint_sym_api.h"
+#include "panda/buzzer.h"
 #include "panda/plugin.h"
 
 #include <cstring>
@@ -20,6 +21,17 @@
 z3::context context;
 z3::solver gsolver(context);
 std::vector<SymbolicBranchMeta> branches;
+
+void taint2_sym_delete_addr(Addr a, int offset) {
+    assert(shadow);
+    if(!symexEnabled) taint2_enable_sym();
+    a.off = offset;
+    auto loc = shadow->query_loc(a);
+    if (loc.first) {
+        if (!loc.first->query_full(loc.second)->sym)
+            delete loc.first->query_full(loc.second)->sym;
+    }
+}
 
 void taint2_sym_label_addr(Addr a, int offset, uint32_t l) {
     assert(shadow);
@@ -129,6 +141,12 @@ void taint2_sym_label_reg(int reg_num, int offset, uint32_t l) {
     taint2_sym_label_addr(a, 0, l);
 }
 
+void taint2_sym_delete_reg(int reg_num, int offset) {
+    if(!symexEnabled) taint2_enable_sym();
+    Addr a = make_greg(reg_num, offset);
+    taint2_sym_delete_addr(a, 0);
+}
+
 void reg_branch_pc(z3::expr condition, bool concrete) {
     if(!symexEnabled) taint2_enable_sym();
 
@@ -146,6 +164,42 @@ void reg_branch_pc(z3::expr condition, bool concrete) {
     sbm.pc = current_pc;
     branches.push_back(sbm);
     gsolver.add(pc);
+
+    std::cout << pc.to_string() << std::endl;
+
+    AnalyzeResult* result = (AnalyzeResult*)buzzer->shmem_message;
+    if (pc.is_not() && pc.arg(0).is_eq()) {
+        // "x != c": Add c to iut event types
+        uint32_t opcode;
+        z3::expr&& eq = pc.arg(0);
+        z3::expr&& expr1 = eq.arg(0);
+        z3::expr&& expr2 = eq.arg(1);
+        if (expr1.is_numeral() && expr2.is_const()) {
+            opcode = expr1.get_numeral_uint();
+            result->data[result->count++] = opcode; 
+        }
+        else if (expr2.is_numeral() && expr1.is_const()) {
+            opcode = expr2.get_numeral_uint();
+            result->data[result->count++] = opcode; 
+        }      
+    } 
+    else if (pc.is_eq()) {
+        // "x == c": The testing event falls into a branch for further processing,
+        // so tell fuzzer to continue event extraction
+        uint32_t opcode;
+        z3::expr&& expr1 = pc.arg(0);
+        z3::expr&& expr2 = pc.arg(1);
+        if (expr1.is_numeral() &&expr2.is_const()) {
+            opcode = expr1.get_numeral_uint();
+            result->terminate = false;
+            result->data[result->count++] = opcode;
+        }
+        else if (expr2.is_numeral() && expr1.is_const()) {
+            opcode = expr2.get_numeral_uint();
+            result->terminate = false;
+            result->data[result->count++] = opcode;
+        }
+    }
 }
 
 

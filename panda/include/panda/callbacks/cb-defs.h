@@ -81,6 +81,10 @@ typedef enum panda_cb_type {
     PANDA_CB_BEFORE_CPU_EXEC_EXIT,  // Just before cpu_exec_exit is called
     PANDA_CB_AFTER_MACHINE_INIT,    // Right after the machine is initialized,
                                     // before any code runs
+    PANDA_CB_AFTER_RECORD_BEGIN,    // Right after we start record
+    PANDA_CB_AFTER_RECORD_END,      // Right after we stop record
+    PANDA_CB_AFTER_REPLAY_BEGIN,    // Right after we start replay
+    PANDA_CB_AFTER_REPLAY_END,      // Right after we end replay
     PANDA_CB_AFTER_LOADVM,          // Right after we restore from a snapshot
     PANDA_CB_TOP_LOOP,              // At top of loop that manages emulation.
                                     // A good place to take a snapshot.
@@ -883,6 +887,11 @@ typedef union panda_cb {
         this is the appropriate place to call taint2_enable_taint().
     */
     void (*after_machine_init)(CPUState *env);
+
+    void (*after_record_begin)(void);
+    void (*after_record_end)(void);
+    void (*after_replay_begin)(void);
+    void (*after_replay_end)(void);
 
     /* Callback ID:     PANDA_CB_AFTER_LOADVM
 
@@ -2039,6 +2048,11 @@ typedef union panda_cb_with_context {
     */
 
     void (*cbaddr)(void);
+
+    void (*after_record_begin)(void* context);
+    void (*after_record_end)(void* context);
+    void (*after_replay_begin)(void* context);
+    void (*after_replay_end)(void* context);
 
 } panda_cb_with_context;
 

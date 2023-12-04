@@ -41,7 +41,6 @@ static int memfd_create(const char *name, unsigned int flags) {
 
 #include "panda/checkpoint.h"
 
-extern RR_log_entry *rr_queue_head;
 Checkpoint* checkpoints[MAX_CHECKPOINTS] = {NULL}; 
 
 extern unsigned long long rr_number_of_log_entries[RR_LAST];
@@ -198,7 +197,7 @@ void panda_restore(void *opaque) {
     rr_nondet_log->bytes_read = checkpoint->nondet_log_position;
     if (rr_nondet_log->rr2){
         rrfile_fseek_set(&rr_nondet_log->file.replay_rr, rr_nondet_log->name, checkpoint->nondet_log_position);
-    }else{
+    } else  {
         fseek(rr_nondet_log->file.fp, checkpoint->nondet_log_position, SEEK_SET);
     }
     rr_queue_head = rr_queue_tail = NULL;

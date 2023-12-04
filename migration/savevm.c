@@ -2355,6 +2355,26 @@ int load_vmstate(const char *name)
     return 0;
 }
 
+int load_vmstate_from_file(QEMUFile* f)
+{
+    int ret;
+    QEMUSnapshotInfo sn;
+    MigrationIncomingState *mis;
+    
+    mis = migration_incoming_get_current();
+    qemu_system_reset(VMRESET_SILENT);
+    mis->from_src_file = f;
+    ret = qemu_loadvm_state(f);
+    migration_incoming_state_destroy();
+    
+    if (ret < 0) {
+        error_report("Error %d while loading VM state", ret);
+        return ret;
+    }
+
+    return 0;
+}
+
 void hmp_delvm(Monitor *mon, const QDict *qdict)
 {
     BlockDriverState *bs;

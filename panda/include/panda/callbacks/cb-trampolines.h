@@ -23,6 +23,10 @@ bool panda_cb_trampoline_qmp(void* context, char *command, char *args, char **re
 //int panda_cb_trampoline_before_loadvm(void* context);
 void panda_cb_trampoline_replay_hd_transfer(void* context, CPUState *env, uint32_t type, target_ptr_t src_addr, target_ptr_t dest_addr, size_t num_bytes);
 void panda_cb_trampoline_after_machine_init(void* context, CPUState *env);
+void panda_cb_trampoline_after_record_begin(void* context);
+void panda_cb_trampoline_after_record_end(void* context);
+void panda_cb_trampoline_after_replay_begin(void* context);
+void panda_cb_trampoline_after_replay_end(void* context);
 void panda_cb_trampoline_after_loadvm(void* context, CPUState *env);
 
 /* invoked from cpu-exec.c */

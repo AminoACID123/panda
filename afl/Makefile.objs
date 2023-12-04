@@ -1,0 +1,15 @@
+afl-obj-y += afl-common.o
+afl-obj-y += afl-forkserver.o
+afl-obj-y += afl-fuzz-bitmap.o
+afl-obj-y += afl-fuzz-init.o 
+afl-obj-y += afl-fuzz-mutators.o 
+afl-obj-y += afl-fuzz-one.o 
+afl-obj-y += afl-fuzz-queue.o 
+afl-obj-y += afl-fuzz-run.o 
+afl-obj-y += afl-fuzz-state.o
+afl-obj-y += afl-fuzz-stats.o
+afl-obj-y += afl-fuzz.o
+afl-obj-y += afl-fuzz-bluetooth.o
+afl-obj-y += afl-performance.o 
+afl-obj-y += afl-sharedmem.o
+afl-obj-y += hci_format.o

@@ -295,9 +295,9 @@ bool guest_hypercall_callback(CPUState *cpu) {
                 target_ulong buf_start = REG_ARG0;
                 target_ulong buf_len = REG_ARG1;
                 uint32_t label = REG_ARG3;
-		size_t label_index=0;
+		        size_t label_index=0;
                 for (label_index=0;label_index<buf_len;label_index++) {
-		    map_address(buf_start+label_index);
+		            map_address(buf_start+label_index);
                 }
                 sprintf(taint2_log_msg,
                         "apply_single_label(addr: %s, len: %d, label: %08X)\n",
@@ -314,7 +314,7 @@ bool guest_hypercall_callback(CPUState *cpu) {
                 target_ulong buf_start = REG_ARG0;
                 target_ulong buf_len = REG_ARG1;
                 uint32_t label = REG_ARG3;
-		map_address(buf_start);
+		        map_address(buf_start);
                 sprintf(taint2_log_msg,
                         "apply_positional_label(addr: %s, off: %d, label: %08X)\n",
                         address_to_string(buf_start).c_str(), (int)buf_len,
@@ -330,10 +330,10 @@ bool guest_hypercall_callback(CPUState *cpu) {
                 target_ulong buf_start = REG_ARG0;
                 target_ulong buf_off = REG_ARG1;
                 uint32_t label = REG_ARG3;
-		uint32_t positive = REG_ARG2;
-		// buffer address + buffer offset
+		        uint32_t positive = REG_ARG2;
+		        // buffer address + buffer offset
                 target_ulong va = buf_start + buf_off;
-		// physical address based on va above
+		        // physical address based on va above
                 target_ulong pa =  panda_virt_to_phys(cpu, va);
                 if ((int) pa != -1) {
                     // make an Addr from the physical address for taint query
@@ -342,15 +342,15 @@ bool guest_hypercall_callback(CPUState *cpu) {
                     uint32_t num_labels = taint2_query(a);
                     bool label_found = false;
                     // if at least one label exists
-		    // and storage is allocated for labels
+		            // and storage is allocated for labels
                     if (num_labels > 0) {
                         // allocate memory for num_labels taint labels
                         uint32_t *labels = (uint32_t *)malloc(sizeof(uint32_t) * num_labels);
                         uint32_t **labelsptr = &labels;
-			// query for the entire set of taint labels present on address
+			            // query for the entire set of taint labels present on address
                         // and store them in "labels"
                         taint2_query_set_a(a, labelsptr, &num_labels);
-			// once per present label
+			            // once per present label
                         for (size_t label_num = 0; label_num < num_labels; label_num++) {
                             if (label == labels[label_num]) {
                                 label_found = true;
@@ -358,7 +358,7 @@ bool guest_hypercall_callback(CPUState *cpu) {
                             }
                         }
                         free(labels);
-		    }
+		            }
                     if (positive) {
                         if (label_found) {
                             sprintf(taint2_log_msg,
@@ -399,8 +399,8 @@ bool guest_hypercall_callback(CPUState *cpu) {
                 // positional register label
                 target_ulong reg_num = REG_ARG0;
                 target_ulong reg_off = REG_ARG1;
-		uint32_t label = REG_ARG3;
-		sprintf(taint2_log_msg,
+		        uint32_t label = REG_ARG3;
+		        sprintf(taint2_log_msg,
                         "apply_register_label(reg: %08X, off: %d, label: %08X)\n",
                         (uint32_t)reg_num, (int)reg_off,
                         label);
@@ -414,11 +414,11 @@ bool guest_hypercall_callback(CPUState *cpu) {
                 std::stringstream head;
                 target_ulong reg_num = REG_ARG0;
                 target_ulong reg_off = REG_ARG1;
-		uint32_t label = REG_ARG3;
-		uint32_t positive = REG_ARG2;
-		Addr reg_as_addr = make_greg(reg_num,reg_off);
-		uint32_t num_labels = taint2_query(reg_as_addr);
-		bool label_found = false;
+		        uint32_t label = REG_ARG3;
+		        uint32_t positive = REG_ARG2;
+		        Addr reg_as_addr = make_greg(reg_num,reg_off);
+		        uint32_t num_labels = taint2_query(reg_as_addr);
+		        bool label_found = false;
                 if (num_labels > 0) {
                     // allocate memory for num_labels taint labels
                     uint32_t *labels = (uint32_t *)malloc(sizeof(uint32_t) * num_labels);

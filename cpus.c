@@ -51,6 +51,10 @@
 #include "hw/nmi.h"
 #include "sysemu/replay.h"
 
+#include "afl/debug.h"
+
+#include "panda/buzzer.h"
+#include "panda/debug.h"
 #include "panda/rr/rr_log.h"
 #include "panda/callbacks/cb-support.h"
 
@@ -85,6 +89,12 @@ static unsigned int throttle_percentage;
 
 extern bool rr_replay_complete;
 extern bool panda_exit_loop;
+
+static QemuCond *tcg_halt_cond;
+static QemuThread *tcg_cpu_thread;
+static CPUState *restart_cpu = NULL;    /* cpu to restart */
+
+void qemu_tcg_init_vcpu(CPUState *cpu);
 
 bool cpu_is_stopped(CPUState *cpu)
 {
@@ -981,6 +991,7 @@ static QemuCond qemu_cpu_cond;
 /* system init */
 static QemuCond qemu_pause_cond;
 
+
 void qemu_init_cpu_loop(void)
 {
     qemu_init_sigbus();
@@ -1020,7 +1031,7 @@ static void qemu_wait_io_event_common(CPUState *cpu)
     cpu->thread_kicked = false;
 }
 
-static void qemu_tcg_wait_io_event(CPUState *cpu)
+static void  qemu_tcg_wait_io_event(CPUState *cpu)
 {
     while (all_cpu_threads_idle()) {
         // We're in replay, so replay the interrupt!
@@ -1231,6 +1242,96 @@ static void deal_with_unplugged_cpus(void)
     }
 }
 
+// void buzzer_loop(void* opaque) {
+//     int temp;
+//     buzzer_state.root_fsrv_pid = getpid();
+//     while (true) {
+//         int cmd;
+//         read(EXEC_CTRL_READ, &cmd, sizeof(cmd));
+
+//         pid_t pid = fork();
+//         if (!pid) {
+//             buzzer_state.child_fsrv_pid = -1;
+//             buzzer_state.child_pid = getpid();
+//             tcg_cpu_thread = NULL;
+//             first_cpu = restart_cpu;
+//             cpu_enable_ticks();
+//             qemu_tcg_init_vcpu(restart_cpu);
+//             aio_bh_schedule_oneshot(qemu_get_aio_context(), buzzer_fuzz_start, NULL);
+//             return;
+//         }
+
+//         waitpid(pid, &temp, 0);
+        
+//     }
+// }
+
+void buzzer_forkserver(void* opaque);
+
+void prepare_record(void) {
+    set_rr_snapshot();
+    remove(BZ_REPLAY_LOG);
+    rr_create_record_log(BZ_REPLAY_LOG);
+    rr_reset_state(restart_cpu);
+    rr_control.mode = RR_RECORD;
+    rr_control.next = RR_NOCHANGE;
+}
+
+void prepare_replay(void) {
+    buzzer_init_plugins();
+    rr_create_replay_log(BZ_REPLAY_LOG);
+    rr_reset_state(restart_cpu);
+    rr_control.mode = RR_REPLAY;
+    rr_queue_head = rr_queue_tail = NULL;
+    rr_queue_end = &rr_queue[RR_QUEUE_MAX_LEN];
+    rr_fill_queue();
+    qemu_rr_quit_timers();
+    rr_control.next = RR_NOCHANGE; 
+}
+
+void buzzer_forkserver(void* opaque) {
+    int temp;
+    send_stat(STAT_FSRV_UP);
+
+    while (true)
+    {
+        temp = recv_ctrl();
+
+        if (temp == CTRL_EXIT_FSRV) {
+            exit(0);
+
+        } else {
+            pid_t pid = fork();
+
+            if (!pid) {
+                tcg_cpu_thread = NULL;
+                first_cpu = restart_cpu;
+
+                if (temp == CTRL_START_RECORD) {
+                    prepare_record();
+
+                } else if (temp == CTRL_EXTRACT_EVENTS) {
+                    prepare_replay();
+                    buzzer->current_task = TASK_EXTRACT_EVENTS;
+
+                } else if (temp == CTRL_EXTRACT_LE_EVENTS) {
+                    prepare_replay();
+                    buzzer->current_task = TASK_EXTRACT_LE_EVENTS;
+                }
+
+                cpu_enable_ticks();
+                qemu_tcg_init_vcpu(restart_cpu);
+                send_stat(getpid());
+                return;
+            }
+
+            waitpid(pid, &temp, 0);
+            send_stat(pid);
+        }
+    }
+}
+
+
 /* Single-threaded TCG
  *
  * In the single-threaded case each vCPU is simulated in turn. If
@@ -1273,7 +1374,7 @@ static void *qemu_tcg_cpu_thread_fn(void *arg)
     /* process any pending work */
     cpu->exit_request = 1;
 
-    while (1) {
+    while (!buzzer->stop_cpu) {
 
         if (!rr_replay_complete) {
             panda_callbacks_top_loop(cpu);
@@ -1291,7 +1392,7 @@ static void *qemu_tcg_cpu_thread_fn(void *arg)
             atomic_mb_set(&tcg_current_rr_cpu, cpu);
 
             qemu_clock_enable(QEMU_CLOCK_VIRTUAL,
-                              (cpu->singlestep_enabled & SSTEP_NOTIMER) == 0);
+                            (cpu->singlestep_enabled & SSTEP_NOTIMER) == 0);
 
             if (cpu_can_run(cpu)) {
                 int r;
@@ -1331,6 +1432,17 @@ static void *qemu_tcg_cpu_thread_fn(void *arg)
         deal_with_unplugged_cpus();
 
     }
+
+    if (buzzer->stop_cpu) {
+        buzzer->stop_cpu = false;
+        cpu_disable_ticks();
+        aio_bh_schedule_oneshot(qemu_get_aio_context(), buzzer_forkserver, NULL);
+        restart_cpu = first_cpu;
+        first_cpu = NULL;
+        qemu_mutex_unlock_iothread();
+    }
+
+    // OKF("CPU stopped");
 
     return NULL;
 }
@@ -1547,11 +1659,9 @@ void cpu_remove_sync(CPUState *cpu)
 /* For temporary buffers for forming a name */
 #define VCPU_THREAD_NAME_SIZE 16
 
-static void qemu_tcg_init_vcpu(CPUState *cpu)
+void qemu_tcg_init_vcpu(CPUState *cpu)
 {
     char thread_name[VCPU_THREAD_NAME_SIZE];
-    static QemuCond *tcg_halt_cond;
-    static QemuThread *tcg_cpu_thread;
 
     /* share a single thread for all cpus with TCG */
     if (!tcg_cpu_thread) {
@@ -1643,6 +1753,7 @@ void qemu_init_vcpu(CPUState *cpu)
         cpu->num_ases = 1;
         cpu_address_space_init(cpu, as, 0);
     }
+
 
     if (kvm_enabled()) {
         qemu_kvm_start_vcpu(cpu);

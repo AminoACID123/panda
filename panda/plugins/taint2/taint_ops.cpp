@@ -26,6 +26,8 @@ PANDAENDCOMMENT */
 
 #include <cstdio>
 #include <cstdarg>
+#include <sstream>
+#include <iostream>
 
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
@@ -204,13 +206,14 @@ void copy_symbols(Shad *shad_dest, uint64_t dest, Shad *shad_src,
         uint64_t src, uint64_t size) {
     if (size == 255)
         assert(false);
-    CDEBUG(std::cerr << "copy_symbols shad src " << src << " dst " << dest << " size " << size << "\n");
+    CDEBUG(std::cerr << "copy_symbols shad src "<< shad_src->name() << ":" << src << " dst " << shad_dest->name() << ":" << dest << " size " << size << "\n");
     for (uint64_t i = 0; i < size; i++) {
 
         // When copy src bytes without symbolic data, make sure to clean dest byte
         if (!shad_src->query_full(src+i)->sym) {
-            if (shad_dest->query_full(dest+i)->sym)
+            if (shad_dest->query_full(dest+i)->sym) {
                 delete shad_dest->query_full(dest+i)->sym;
+            }
             shad_dest->query_full(dest+i)->sym = nullptr;
             continue;
         }
@@ -873,8 +876,8 @@ void taint_mix(Shad *shad, uint64_t dest, uint64_t dest_size, uint64_t src,
             shift_warned_count++;
             if (shift_warned_count <= 10) {
                 fprintf(stderr, "%sWARNING: Variable shift amount for opcode "
-                        "%ld; control bits may be incorrect.\n", PANDA_MSG,
-                        opcode);
+                        "%ld; control bits may be incorrect. (Item being shifted: %lx)\n", PANDA_MSG,
+                        opcode, operands[0]->getZExtValue());
             }
             if (shift_warned_count == 10) {
                 fprintf(stderr, "%sVariable shift amount warning emitted %d "
@@ -1432,7 +1435,7 @@ void concolic_copy(Shad *shad_dest, uint64_t dest, Shad *shad_src,
         case llvm::Instruction::And:
         case llvm::Instruction::Or:
         case llvm::Instruction::Xor: {
-            CDEBUG(llvm::errs() << "Value: " << val << '\n');
+            CDEBUG(llvm::errs() << "Opcode: " << opcode  << "Value: " << val << '\n');
             // It's possible that src == dest. Update symbol at byte-level
             bool symbolic = false;
             for (int i = 0; i < size; i++) {

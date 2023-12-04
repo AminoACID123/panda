@@ -112,6 +112,10 @@ void helper_cpuid(CPUX86State *env)
         return;
     }
 
+    if (buzzer_callback_hypercall(ENV_GET_CPU(env))) {
+        return;
+    }
+
     uint32_t eax, ebx, ecx, edx;
     cpu_x86_cpuid(env, (uint32_t)env->regs[R_EAX], (uint32_t)env->regs[R_ECX],
                   &eax, &ebx, &ecx, &edx);

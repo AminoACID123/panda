@@ -114,7 +114,6 @@ venv
 /docs/version.texi
 /panda/plugins/*/docs/
 /panda/plugins/*/target/
-**/target
 *.tps
 .stgit-*
 .git-submodule-status
@@ -146,7 +145,6 @@ trace-dtrace-root.dtrace
 trace-ust-all.h
 trace-ust-all.c
 
-.vscode/
 
 # Pypanda Examples
 pwc_log
@@ -173,3 +171,5 @@ local
 # Workaround for CI to avoid github checkout@v2 actions bug when auto-generating documentation
 auto_pydoc
 auto_pydoc/pandare
+
+buzzer_loader

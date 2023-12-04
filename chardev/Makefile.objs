@@ -14,5 +14,6 @@ chardev-obj-y += char-socket.o
 chardev-obj-y += char-stdio.o
 chardev-obj-y += char-udp.o
 chardev-obj-y += char-panda.o
+chardev-obj-y += char-buzzer.o
 chardev-obj-$(CONFIG_WIN32) += char-win.o
 chardev-obj-$(CONFIG_WIN32) += char-win-stdio.o

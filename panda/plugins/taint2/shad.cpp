@@ -61,6 +61,16 @@ FastShad::FastShad(std::string name, uint64_t labelsets) : Shad(name, labelsets)
     orig_labels = array;
 }
 
+// void FastShad::reset() {
+//     if (size < (1UL << 24)) {
+//         memset(orig_labels, 0, sizeof(TaintData) * size);
+//     } else {
+//         munmap(orig_labels, sizeof(TaintData) * size);
+//         orig_labels = (TaintData *)mmap(NULL, sizeof(TaintData) * size, PROT_READ | PROT_WRITE,
+//                 MAP_ANONYMOUS | MAP_PRIVATE | MAP_NORESERVE, -1, 0);
+//     }
+// }
+
 // release all memory associated with this fast_shad.
 FastShad::~FastShad() {
     if (size < (1UL << 24)) {
@@ -74,6 +84,10 @@ LazyShad::LazyShad(std::string name, uint64_t max_size) : Shad(name, max_size)
 {
     tassert(this->size > 0);
     tassert(this->_name.size() > 0);
+}
+
+void LazyShad::reset() {
+    labels.clear();
 }
 
 LazyShad::~LazyShad()

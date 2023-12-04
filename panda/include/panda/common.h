@@ -21,12 +21,7 @@
 /*
  * @brief Branch predition hint macros.
  */
-#if !defined(likely)
-#define likely(x) __builtin_expect(!!(x), 1)
-#endif
-#if !defined(unlikely)
-#define unlikely(x) __builtin_expect(!!(x), 0)
-#endif
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -219,7 +214,7 @@ void exit_priv(CPUState* cpu);
     
 /* (not kernel-doc)
  * panda_virtual_memory_rw() - Copy data between host and guest.
- * @env: Cpu sate.
+ * @env: Cpu state.
  * @addr: Guest virtual addr of start of read or write.
  * @buf: Host pointer to a buffer either containing the data to be
  *    written to guest memory, or into which data will be copied
@@ -652,6 +647,20 @@ static inline target_ulong panda_get_retval(const CPUState *cpu) {
     return 0;
 #endif
 }
+
+
+
+static inline int bz_virtual_memory_read(CPUState *env, target_ulong addr,
+                                            void *buf, int len) {
+    return panda_virtual_memory_rw(env, addr, (uint8_t*)buf, len, 0);
+}
+
+static inline int bz_virtual_memory_write(CPUState *env, target_ulong addr,
+                                             void *buf, int len) {
+    return panda_virtual_memory_rw(env, addr,  (uint8_t*)buf, len, 1);
+}
+
+    
 
 #ifdef __cplusplus
 }

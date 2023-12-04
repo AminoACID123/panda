@@ -35,6 +35,8 @@
 #include "sysemu/cpus.h"
 #include "sysemu/replay.h"
 #include "sysemu/sysemu.h"
+#include "panda/buzzer.h"
+#include "panda/debug.h"
 #include "panda/rr/rr_log.h"
 #include "panda/callbacks/cb-support.h"
 #include "panda/common.h"
@@ -859,6 +861,9 @@ int cpu_exec(CPUState *cpu)
             }
 #endif // CONFIG_SOFTMMU
             if (rr_in_replay() && rr_replay_finished()) {
+                if (buzzer->in_buzzer_mode) {
+                    buzzer_on_replay_end();
+                }
                 rr_do_end_replay(0);
                 qemu_cpu_kick(cpu);
                 panda_exit_loop = true;

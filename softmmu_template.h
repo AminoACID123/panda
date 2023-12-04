@@ -432,7 +432,7 @@ WORD_TYPE glue(helper_le_ld_name, _panda)(CPUArchState *env, target_ulong addr,
      * available at the time when we are translating from TCG, retaddr is
      * handled in the TCG backend.  We get it here for LLVM.
      */
-    if (execute_llvm && (retaddr == 0xDEADBEEF)){
+    if (execute_llvm && (retaddr == 0xDEADBEEF)) {
         retaddr = GETPC();
     }
 

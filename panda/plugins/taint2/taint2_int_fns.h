@@ -153,6 +153,8 @@ void taint2_sym_label_ram(uint64_t RamOffset, uint32_t l);
 // to this address are removed.
 void taint2_sym_label_reg(int reg_num, int offset, uint32_t l);
 
+void taint2_sym_delete_reg(int reg_num, int offset);
+
 void taint2_sym_query_ram(uint64_t RamOffset, uint32_t s, uint32_t *n, char** strptr);
 
 void taint2_sym_query_reg(uint32_t reg_num, uint32_t *n, char** strptr);
@@ -160,6 +162,19 @@ void taint2_sym_query_reg(uint32_t reg_num, uint32_t *n, char** strptr);
 void taint2_sym_path_constraints(uint32_t *n, char** strptr);
 
 void taint2_sym_branch_meta(uint32_t *n, SymbolicBranchMeta** metas);
+
+void taint2_reset(void);
+
+// Addr make_haddr(uint64_t a);
+
+// Addr make_iaddr(uint64_t a);
+
+// Addr make_maddr(uint64_t a);
+
+// Addr make_laddr(uint64_t a, uint64_t o);
+
+// Addr make_greg(uint64_t r, uint16_t off);
+
 
 // END_PYPANDA_NEEDS_THIS -- do not delete this comment!
 
@@ -171,6 +186,7 @@ Panda__TaintQuery *taint2_query_pandalog (Addr addr, uint32_t offset);
 
 // used to free memory associated with that struct
 void pandalog_taint_query_free(Panda__TaintQuery *tq);
+
 
 #endif
 

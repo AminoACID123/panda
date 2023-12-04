@@ -22,6 +22,8 @@ QEMU_PROG_BUILD = $(QEMU_PROG)
 else
 # system emulator name
 QEMU_PROG=panda-system-$(TARGET_NAME)$(EXESUF)
+BUZZER_FUZZ_PROG=buzzer-fuzz
+BUZZER_FUZZ_PROG=buzzer-analyze
 PANDA_PROG=libpanda-$(TARGET_NAME).so
 PANDA_PROG_NAME=panda-$(TARGET_NAME)
 ifneq (,$(findstring -mwindows,$(libs_softmmu)))
@@ -29,6 +31,7 @@ ifneq (,$(findstring -mwindows,$(libs_softmmu)))
 QEMU_PROGW=panda-system-$(TARGET_NAME)w$(EXESUF)
 $(QEMU_PROG): $(QEMU_PROGW)
 	$(call quiet-command,$(OBJCOPY) --subsystem console $(QEMU_PROGW) $(QEMU_PROG),"GEN","$(TARGET_DIR)$(QEMU_PROG)")
+
 QEMU_PROG_BUILD = $(QEMU_PROGW)
 else
 QEMU_PROG_BUILD = $(QEMU_PROG)
@@ -184,6 +187,7 @@ target-obj-y :=
 block-obj-y :=
 common-obj-y :=
 chardev-obj-y :=
+afl-obj-y :=
 include $(SRC_PATH)/Makefile.objs
 dummy := $(call unnest-vars,,target-obj-y)
 target-obj-y-save := $(target-obj-y)
@@ -191,6 +195,7 @@ dummy := $(call unnest-vars,.., \
                block-obj-y \
                block-obj-m \
                chardev-obj-y \
+			   afl-obj-y \
                crypto-obj-y \
                crypto-aes-obj-y \
                qom-obj-y \
@@ -202,7 +207,7 @@ target-obj-y := $(target-obj-y-save)
 all-obj-y += $(common-obj-y)
 all-obj-y += $(target-obj-y)
 all-obj-y += $(qom-obj-y)
-all-obj-$(CONFIG_SOFTMMU) += $(block-obj-y) $(chardev-obj-y)
+all-obj-$(CONFIG_SOFTMMU) += $(block-obj-y) $(chardev-obj-y) $(afl-obj-y)
 all-obj-$(CONFIG_USER_ONLY) += $(crypto-aes-obj-y)
 all-obj-$(CONFIG_SOFTMMU) += $(crypto-obj-y)
 all-obj-$(CONFIG_SOFTMMU) += $(io-obj-y)
@@ -211,9 +216,10 @@ all-obj-$(CONFIG_SOFTMMU) += panda/src/panda_api.o
 ifdef CONFIG_SOFTMMU
 panda-all-obj-y += $(filter-out %main.o, $(common-obj-y))
 panda-all-obj-y += panda/src/panda_api.o
+panda-all-obj-y += panda/src/buzzer_main.o
 panda-all-obj-y += $(target-obj-y)
 panda-all-obj-y += $(qom-obj-y)
-panda-all-obj-$(CONFIG_SOFTMMU) += $(block-obj-y) $(chardev-obj-y)
+panda-all-obj-$(CONFIG_SOFTMMU) += $(block-obj-y) $(chardev-obj-y) $(afl-obj-y)
 panda-all-obj-$(CONFIG_SOFTMMU) += $(crypto-obj-y)
 panda-all-obj-$(CONFIG_SOFTMMU) += $(io-obj-y)
 endif #CONFIG_SOFTMMU
@@ -228,8 +234,13 @@ COMMON_LDADDS = $(trace-obj-y) ../libqemuutil.a ../libqemustub.a
 $(QEMU_PROG_BUILD): LDFLAGS+=-L. -l$(PANDA_PROG_NAME) -Wl,-rpath,'$$ORIGIN' -Wl,-rpath='$$ORIGIN/../lib'
 $(QEMU_PROG_BUILD): main.o $(PANDA_PROG)
 	$(call LINK, $(filter-out %.mak, $^))
+	$(call quiet-command,ln -sf $(QEMU_PROG) buzzer-fuzz)
+	$(call quiet-command,ln -sf $(QEMU_PROG) buzzer-analyze)
 
-$(PANDA_PROG): LDFLAGS+=-shared
+$(PANDA_PROG): CFLAGS+=-Wno-pointer-sign
+$(PANDA_PROG): CFLAGS+=-Wno-discarded-qualifiers
+$(PANDA_PROG): CFLAGS+=-Wno-unused-variable
+$(PANDA_PROG): LDFLAGS+=-shared 
 $(PANDA_PROG): $(panda-all-obj-y) $(COMMON_LDADDS)
 	$(call LINK, $(filter-out %.mak, $^))
 ifdef CONFIG_DARWIN

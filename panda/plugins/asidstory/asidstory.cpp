@@ -79,7 +79,7 @@ PPP_PROT_REG_CB(on_proc_change);
 
 PPP_CB_BOILERPLATE(on_proc_change);
 
-#include<string>
+#include <string>
 #include <iostream>
 
 using namespace std;

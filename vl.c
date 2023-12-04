@@ -146,6 +146,8 @@ int main(int argc, char **argv)
 #include "sysemu/iothread.h"
 #include "migration/savevm.h"
 
+#include "panda/buzzer.h"
+
 #include "vl.h"
 
 extern void panda_cleanup(void);
@@ -155,9 +157,15 @@ extern void panda_unload_plugins(void);
 extern char *panda_plugin_path(const char *name);
 extern void panda_set_os_name(char *os_name);
 extern void panda_callbacks_after_machine_init(CPUState *);
+extern void panda_callbacks_after_record_begin(void);
+extern void panda_callbacks_after_record_end(void);
+extern void panda_callbacks_after_replay_begin(void);
+extern void panda_callbacks_after_end_replay(void);
 extern void panda_callbacks_pre_shutdown(void);
 extern void panda_callbacks_main_loop_wait(void);
 extern void pandalog_cc_init_write(const char * fname);
+
+
 
 int pandalog = 0;
 int panda_in_main_loop = 0;
@@ -1916,6 +1924,7 @@ static bool main_loop_should_exit(void)
       return true;
     }
     if (qemu_shutdown_requested()) {
+        exit(0);
         panda_callbacks_pre_shutdown();
         qemu_kill_report();
         qapi_event_send_shutdown(&error_abort);
@@ -1984,9 +1993,9 @@ void main_loop(void)
         sigaddset(&blockset, SIGUSR2);
         sigaddset(&blockset, SIGIO);
 
-	if (likely(rr_control.next == RR_NOCHANGE)) {
-	    // nop
-	} else if (unlikely(rr_control.next == RR_RECORD)) {
+        if (likely(rr_control.next == RR_NOCHANGE)) {
+            // nop
+        } else if (unlikely(rr_control.next == RR_RECORD)) {
             //block signals
             sigprocmask(SIG_BLOCK, &blockset, &oldset);
             rr_do_begin_record(rr_control.name, first_cpu);
@@ -2006,10 +2015,10 @@ void main_loop(void)
             //unblock signals
             sigprocmask(SIG_SETMASK, &oldset, NULL);
         } else if (unlikely((rr_control.next == RR_OFF) && rr_in_record())) {
-	    //mz 05.2012 We have the global mutex here, so this should be OK.
+            //mz 05.2012 We have the global mutex here, so this should be OK.
             rr_do_end_record();
             if (NULL != qemu_mon) {
-            	monitor_printf(qemu_mon, "Recording ready for use.\n");
+                monitor_printf(qemu_mon, "Recording ready for use.\n");
             }
             rr_reset_state(first_cpu);
             rr_control.next = RR_NOCHANGE;
@@ -3097,6 +3106,8 @@ void main_panda_run(void) {
     panda_in_main_loop = 0;
 }
 
+
+
 int main_aux(int argc, char **argv, char **envp, PandaMainMode pmm)
  {
     if (pmm == PANDA_RUN)    goto PANDA_MAIN_RUN;
@@ -3274,6 +3285,24 @@ int main_aux(int argc, char **argv, char **envp, PandaMainMode pmm)
                 exit(1);
             }
             switch(popt->index) {
+            case QEMU_OPTION_args:
+                strcpy(buzzer->args, optarg);
+                break;
+            case QEMU_OPTION_out:
+                strcpy(buzzer->out_dir, optarg);
+                break;
+            case QEMU_OPTION_target_file:
+                strcpy(buzzer->target_file, optarg);
+                break;
+            case QEMU_OPTION_target_dir:
+                strcpy(buzzer->target_dir, optarg);
+                break;
+            case QEMU_OPTION_enable_asan:
+                buzzer->enable_asan = true;
+                break;
+            case QEMU_OPTION_bt_dev:
+                buzzer->device_no = atoi(optarg);
+                break;
             case QEMU_OPTION_no_kvm_irqchip: {
                 olist = qemu_find_opts("machine");
                 qemu_opts_parse_noisily(olist, "kernel_irqchip=off", false);
@@ -4987,6 +5016,9 @@ int main_aux(int argc, char **argv, char **envp, PandaMainMode pmm)
     qemu_system_reset(VMRESET_SILENT);
     register_global_state();
 
+
+
+
     if (replay_name) {
         // rr: check for begin/end record/replay
         sigset_t blockset, oldset = {0};
@@ -5074,7 +5106,11 @@ int main_aux(int argc, char **argv, char **envp, PandaMainMode pmm)
     // Call PANDA post-machine init hook
     panda_callbacks_after_machine_init(first_cpu);
 
+    buzzer_after_machine_init();
+
     if (pmm == PANDA_INIT) return 0;
+
+    // buzzer_load_plugins();
 
 PANDA_MAIN_RUN:
 

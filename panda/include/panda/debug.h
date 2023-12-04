@@ -121,4 +121,10 @@
 #define PANDALN fprintf(LOG_PANDALN_FILE, "-> %s:%03d %s()\n", __FILENAME__, __LINE__, __func__)
 #endif
 
+
+/* Error-checking versions of read() and write() that call RPFATAL() as
+   appropriate. */
+
+
+
 /* vim:set tabstop=4 softtabstop=4 expandtab: */

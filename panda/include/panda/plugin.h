@@ -71,6 +71,7 @@ typedef struct panda_plugin {
     void *plugin;          // Handle to the plugin (for use with dlsym())
     bool unload;           // When true, unload plugin when safe
     bool exported_symbols; // True if plugin dlopened with RTLD_GLOBAL
+    bool (*init_fn)(void *);
 } panda_plugin;
 
 

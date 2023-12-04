@@ -196,6 +196,7 @@ void taint2_label_io_additive(uint64_t ia, uint32_t l) {
     tp_label_additive(a, l);
 }
 
+
 static void label_byte(target_ulong virt_addr, hwaddr pa, ram_addr_t RamOffset, uint32_t label_num) {
     if (pandalog) {
         Panda__LogEntry ple = PANDA__LOG_ENTRY__INIT;

@@ -5,6 +5,8 @@
 #define CONC_LVL_INFO 1
 #define CONC_LVL_OFF 2
 
+#define CONC_LVL CONC_LVL_DEBUG
+
 #ifndef CONC_LVL
 #define CONC_LVL CONC_LVL_OFF
 #endif

@@ -42,6 +42,8 @@ extern "C" void taint2_sym_label_ram(uint64_t RamOffset, uint32_t l);
 
 extern "C" void taint2_sym_label_reg(int reg_num, int offset, uint32_t l);
 
+extern "C" void taint2_sym_delete_reg(int reg_num, int offset);
+
 z3::expr *taint2_sym_query_expr(Addr a);
 
 // register branch path constraint

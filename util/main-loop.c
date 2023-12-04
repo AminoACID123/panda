@@ -536,7 +536,6 @@ int main_loop_wait(int nonblocking)
      *  Hence, we manually fix the timeout value for this corner case */
     if (unlikely(timeout_ns == -1)) timeout_ns = RR_MAIN_WAIT_LOOP_TIMEOUT_IN_REPLAY;
 
-
     ret = os_host_main_loop_wait(timeout_ns);
 
 #ifdef CONFIG_SLIRP

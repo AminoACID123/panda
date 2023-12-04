@@ -6,6 +6,10 @@ util-obj-y += qmp-introspect.o qapi-types.o qapi-visit.o qapi-event.o
 
 chardev-obj-y = chardev/
 
+#########################################################
+# AFL target
+afl-obj-y = afl/
+
 #######################################################################
 # block-obj-y is code used by both qemu system emulation and qemu-img
 

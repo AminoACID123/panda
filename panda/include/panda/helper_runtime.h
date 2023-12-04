@@ -56,7 +56,7 @@ public:
         PHCV(new PandaHelperCallVisitor(this)),
         functionChanged(false) {}
 
-    ~PandaCallMorphFunctionPass(){
+    ~PandaCallMorphFunctionPass() {
         delete PHCV;
     }
 

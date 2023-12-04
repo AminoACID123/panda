@@ -32,7 +32,9 @@
 #include "migration/qemu-file.h"
 #include "trace.h"
 
+#include "panda/debug.h"
 #include "panda/include/panda/rr/panda_rr2.h"
+#include "panda/utils.h"
 
 #define IO_BUF_SIZE 32768
 #define MAX_IOV_SIZE MIN(IOV_MAX, 64)
@@ -56,6 +58,7 @@ struct QEMUFile {
     unsigned int iovcnt;
 
     int last_error;
+
 };
 
 typedef struct QEMUPandaTarFile
@@ -134,7 +137,6 @@ QEMUFile *qemu_fopen_ops(void *opaque, const QEMUFileOps *ops)
     f->ops = ops;
     return f;
 }
-
 
 void qemu_file_set_hooks(QEMUFile *f, const QEMUFileHooks *hooks)
 {
@@ -399,6 +401,7 @@ static void add_to_iovec(QEMUFile *f, const uint8_t *buf, size_t size,
 void qemu_put_buffer_async(QEMUFile *f, const uint8_t *buf, size_t size,
                            bool may_free)
 {
+
     if (f->last_error) {
         return;
     }

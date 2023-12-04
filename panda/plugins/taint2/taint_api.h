@@ -11,7 +11,6 @@
 #endif
 
 
-
 extern "C" {
 // For the C API to taint accessible from other plugins
 void taint2_enable_taint(void);

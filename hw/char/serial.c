@@ -179,6 +179,7 @@ static void serial_update_parameters(SerialState *s)
     data_bits = (s->lcr & 0x03) + 5;
     frame_size += data_bits + stop_bits;
     speed = s->baudbase / s->divider;
+
     ssp.speed = speed;
     ssp.parity = parity;
     ssp.data_bits = data_bits;
@@ -238,7 +239,7 @@ static gboolean serial_watch_cb(GIOChannel *chan, GIOCondition cond,
 }
 
 static void serial_xmit(SerialState *s)
-{
+{   
     do {
         assert(!(s->lsr & UART_LSR_TEMT));
         if (s->tsr_retry == 0) {
@@ -935,6 +936,8 @@ void serial_realize_core(SerialState *s, Error **errp)
         error_setg(errp, "Can't create serial device, empty char device");
         return;
     }
+
+    // s->msg_boundary_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, (QEMUTimerCB *) serial_msg_end, s);
 
     s->modem_status_poll = timer_new_ns(QEMU_CLOCK_VIRTUAL, (QEMUTimerCB *) serial_update_msl, s);
 

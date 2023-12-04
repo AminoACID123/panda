@@ -39,7 +39,7 @@ class Shad;
 
 extern "C" {
 extern bool track_taint_state;
-extern void taint_state_changed(Shad *shad, uint64_t addr, uint64_t size);
+extern void taint_state_changed(Shad *shad, uint64_t addr, uint64_t size, const char*);
 
 // maximum taintset compute number (0=unlimited)
 // taint will be deleted once this value is exceeded
@@ -175,7 +175,9 @@ class Shad
             shad_dest->set_full_quiet(dest + i, td);
         }
 
-        if (track_taint_state && change) taint_state_changed(shad_dest, dest, size);
+        if (track_taint_state && change) {
+            taint_state_changed(shad_dest, dest, size, "copy");
+        }
         return change;
     }
 
@@ -241,6 +243,8 @@ class FastShad : public Shad
     FastShad(std::string name, uint64_t size);
     ~FastShad();
 
+    void reset();
+
     // Taint an address with a labelset.
     void label(uint64_t addr, LabelSetP ls) override
     {
@@ -275,8 +279,9 @@ class FastShad : public Shad
 #pragma GCC diagnostic pop
 #endif
 
-        if (change)
-            taint_state_changed(this, addr, remove_size);
+        if (change) {
+            taint_state_changed(this, addr, remove_size, "FastShad remove");
+        }
     }
 
     void remove_quiet(uint64_t addr, uint64_t remove_size) override
@@ -346,7 +351,7 @@ class FastShad : public Shad
             bool change = !(td == *get_td_p(addr));
             labels[addr] = td;
             
-            if (change) taint_state_changed(this, addr, 1);
+            if (change) taint_state_changed(this, addr, 1, "FastShad set_full");
             changed |= change;
         }
         else
@@ -396,6 +401,8 @@ class LazyShad : public Shad
     LazyShad(std::string name, uint64_t size);
     ~LazyShad();
 
+    void reset();
+
     void label(uint64_t addr, LabelSetP ls) override
     {
         taint_log("LABEL: %s[%lx] (%p)\n", name(), addr, ls);
@@ -417,7 +424,7 @@ class LazyShad : public Shad
         }
 
         if (change) {
-            taint_state_changed(this, addr, remove_size);
+            taint_state_changed(this, addr, remove_size, "remove");
         }
     }
 
@@ -453,7 +460,7 @@ class LazyShad : public Shad
             bool change = !(td == *query_full(addr));
             labels[addr] = td;
             
-            if (change) taint_state_changed(this, addr, 1);
+            if (change) taint_state_changed(this, addr, 1, "LazyShad set_full");
             changed |= change;
         }
         else

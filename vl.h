@@ -5,16 +5,18 @@
 #include <stdint.h>
 
 typedef enum panda_main_mode {
-    PANDA_NORMAL,             // just run panda/qemu as normal
-    PANDA_INIT,               // initialize panda/qemu
-    PANDA_RUN,                // run the emulate machine
-    PANDA_FINISH}             // cleanup and exit
-PandaMainMode;
+    PANDA_NORMAL,               // just run panda/qemu as normal
+    PANDA_INIT,                 // initialize panda/qemu
+    PANDA_RUN,                  // run the emulate machine
+    PANDA_FINISH                // cleanup and exit
+} PandaMainMode;
 
 void main_panda_run(void);
 
 void main_loop(void);
 
-int main_aux(int argc, char **argv, char **envp, PandaMainMode pmm);
+int buzzer_main(int argc, char** argv, char** envp);
+
+int main_aux(int argc, char **argv, char** envp, PandaMainMode pmm);
 
 #endif

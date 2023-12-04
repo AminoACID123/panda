@@ -35,6 +35,9 @@
 #endif
 #include "qemu/osdep.h"
 
+#define XXH_INLINE_ALL
+#include "afl/xxhash.h"
+#undef XXH_INLINE_ALL
 
 #include "qemu-common.h"
 #define NO_CPU_IO_DEFS
@@ -43,6 +46,7 @@
 #include "disas/disas.h"
 #include "exec/exec-all.h"
 #include "tcg.h"
+#include "tcg/tcg-op.h"
 #if defined(CONFIG_USER_ONLY)
 #include "qemu.h"
 #include "exec/exec-all.h"
@@ -76,6 +80,8 @@
 #include "panda/tcg-llvm.h"
 #endif
 
+// #include "panda/afl-fuzz.h"
+#include "panda/buzzer.h"
 #include "panda/rr/rr_log.h"
 #include "panda/callbacks/cb-support.h"
 #include "panda/tcg-utils.h"
@@ -158,6 +164,40 @@ bool parallel_cpus;
 
 /* translation block context */
 __thread int have_tb_lock;
+
+target_ulong afl_prev_loc;
+
+#define INC_AFL_AREA(loc)                   \
+asm volatile(                               \
+    "addb $1, (%0, %1, 1)\n"                \
+    "adcb $0, (%0, %1, 1)\n"                \
+    : /* no out */                          \
+    : "r"(buzzer->shmem_trace), "r"(loc)    \
+    : "memory", "eax")
+
+void HELPER(afl_maybe_log)(target_ulong cur_loc) {
+//   register uintptr_t afl_idx = cur_loc;
+//   INC_AFL_AREA(afl_idx);
+
+  ++buzzer->shmem_trace[cur_loc];
+  if (unlikely(buzzer->shmem_trace[cur_loc]) == 0) {
+    buzzer->shmem_trace[cur_loc] = 255;
+  }
+
+}
+
+/* Generates TCG code for AFL's tracing instrumentation. */
+static void afl_gen_trace(target_ulong cur_loc) {
+
+    // cur_loc = (cur_loc >> 4) ^ (cur_loc << 8);
+    // cur_loc &= MAP_SIZE - 1;
+    cur_loc = (uintptr_t)(afl_hash_ip((uint64_t)cur_loc));
+    cur_loc &= (MAP_SIZE - 1);
+
+    TCGv cur_loc_v = tcg_const_tl(cur_loc);
+    gen_helper_afl_maybe_log(cur_loc_v);
+    tcg_temp_free(cur_loc_v);
+}
 
 static void page_table_config_init(void)
 {
@@ -1349,6 +1389,9 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
     tcg_func_start(&tcg_ctx);
 
     tcg_ctx.cpu = ENV_GET_CPU(env);
+    if (likely(buzzer && buzzer->current_task == TASK_FUZZ)) {
+        afl_gen_trace(pc);
+    }
     gen_intermediate_code(env, tb);
     tcg_ctx.cpu = NULL;
 

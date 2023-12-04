@@ -16,6 +16,7 @@
 #include "panda/rr/rr_log_all.h"
 #include "panda/rr/panda_rr2.h"
 
+
 // accessors
 uint64_t rr_get_pc(void);
 uint64_t rr_get_secondary(void);
@@ -218,5 +219,13 @@ uint32_t rr_checksum_memory(void);
 uint32_t rr_checksum_regs(void);
 
 bool rr_queue_empty(void);
+
+#define RR_QUEUE_MAX_LEN 65536
+extern RR_log_entry rr_queue[RR_QUEUE_MAX_LEN];
+extern RR_log_entry* rr_queue_head;
+extern RR_log_entry* rr_queue_end; // end of buffer.
+
+void rr_record_end_of_log(void);
+void rr_finalize_write_log(void);
 
 #endif

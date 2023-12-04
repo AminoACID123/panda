@@ -67,6 +67,18 @@ struct ShadowState {
     {
     }
 
+    void reset() {
+        prev_bb = 0;
+        num_vals = MAXFRAMESIZE;
+        ram.reset();
+        llv.reset();
+        ret.reset();
+        grv.reset();
+        gsv.reset();
+        hd.reset();
+        io.reset();
+    }
+
     std::pair<Shad *, uint64_t> query_loc(const Addr &a)
     {
         switch (a.typ) {

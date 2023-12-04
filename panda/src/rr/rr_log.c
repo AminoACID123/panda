@@ -70,13 +70,12 @@ rr_control_t rr_control = {.mode = RR_OFF, .next = RR_NOCHANGE};
 // mz FIFO queue of log entries read from the log file
 // Implemented as ring buffer.
 #define RR_QUEUE_MAX_LEN 65536
-static RR_log_entry rr_queue[RR_QUEUE_MAX_LEN];
+RR_log_entry rr_queue[RR_QUEUE_MAX_LEN];
 RR_log_entry* rr_queue_head;
 RR_log_entry* rr_queue_tail;
 RR_log_entry* rr_queue_end; // end of buffer.
 
 // RR2 function
-void rr_finalize_write_log(void);
 
 // mz 11.06.2009 Flags to manage nested recording
 volatile sig_atomic_t rr_record_in_progress = 0;
@@ -664,7 +663,7 @@ void rr_record_serial_write(RR_callsite_id call_site, uint64_t fifo_addr,
 }
 
 // mz record a marker for end of the log
-static inline void rr_record_end_of_log(void) {
+void rr_record_end_of_log(void) {
     rr_write_item((RR_log_entry) {
         .header = rr_header(RR_END_OF_LOG, RR_CALLSITE_END_OF_LOG)
     });
@@ -712,7 +711,7 @@ static inline void free_entry_params(RR_log_entry* entry)
 static inline size_t rr_fread(void *ptr, size_t size, size_t nmemb) {
     size_t result;
     if (rr_nondet_log->rr2){
-	result = rrfile_fread(ptr, size, nmemb, rr_nondet_log->file.replay_rr);
+	    result = rrfile_fread(ptr, size, nmemb, rr_nondet_log->file.replay_rr);
     } else {
         result = fread(ptr, size, nmemb, rr_nondet_log->file.fp);
     }
@@ -1323,12 +1322,13 @@ struct timeval replay_begin_time;
 // size)
 void replay_progress(void)
 {
-    if (rr_nondet_log && !panda_get_library_mode()) { // Silent if no nondet_log or if we're replaying in library mode
+    if (rr_nondet_log && !panda_get_library_mode()) { 
+        // Silent if no nondet_log or if we're replaying in library mode
         if (rr_log_is_empty()) {
-	    if (rr_nondet_log->rr2){
-		printf("%s/%s:  log is empty.\n", rr_nondet_log->name, "nondetlog");
-	    } else {
-		printf("%s:  log is empty.\n", rr_nondet_log->name);
+            if (rr_nondet_log->rr2){
+                printf("%s/%s:  log is empty.\n", rr_nondet_log->name, "nondetlog");
+            } else {
+                printf("%s:  log is empty.\n", rr_nondet_log->name);
             }
         } else {
             struct rusage rusage;
@@ -1345,16 +1345,18 @@ void replay_progress(void)
                 *(dot - 10) = '\0';
 
             printf("%s:  %10" PRIu64
-                   " (%6.2f%%) instrs. %7.2f sec. %5.2f GB ram.\n",
+                   " (%6.2f%%) instrs. %llu/%llu bytes. %7.2f sec. %5.2f GB ram.\n",
                    name, rr_get_guest_instr_count(),
                    ((rr_get_guest_instr_count() * 100.0) /
                     rr_nondet_log->last_prog_point.guest_instr_count),
+                    rr_nondet_log->bytes_read, rr_nondet_log->size,
                    secs, rusage.ru_maxrss / 1024.0 / 1024.0
 #ifdef __APPLE__
                    / 1024.0
 #endif
                    );
             free(dup_name);
+            
         }
     }
 }
@@ -1661,7 +1663,7 @@ void rr_do_end_record(void)
 
     if (recording_info){
         rr2_add_recording_files(recording_info->name, recording_info->path);
-	rrfile_info_clear(&recording_info);
+	    rrfile_info_clear(&recording_info);
     }
 
     printf("...complete!\n");
@@ -1774,7 +1776,7 @@ int rr_do_begin_replay(const char* file_name_full, CPUState* cpu_state)
     }
     else {
         snapshot_ret = rr1_load_snapshot(rr_name, rr_path, name_buf, sizeof(name_buf));
-	rr_get_nondet_log_file_name(rr_name, rr_path, name_buf, sizeof(name_buf));
+	    rr_get_nondet_log_file_name(rr_name, rr_path, name_buf, sizeof(name_buf));
         strcpy(replay_log_path, name_buf);
     }
     if (snapshot_ret < 0) {

@@ -81,7 +81,7 @@ void phys_mem_read_callback(CPUState *cpu, target_ptr_t pc, target_ulong addr, s
 // network related callbacks
 void on_replay_net_transfer(CPUState *cpu, uint32_t type, uint64_t src_addr, uint64_t dst_addr, size_t num_bytes);
 void on_replay_before_dma(CPUState *cpu, const uint8_t *src_addr, hwaddr dest_addr, size_t num_bytes, bool is_write);
-void taint_state_changed(Shad *, uint64_t, uint64_t);
+void taint_state_changed(Shad *, uint64_t, uint64_t, const char*);
 PPP_PROT_REG_CB(on_taint_change);
 PPP_CB_BOILERPLATE(on_taint_change);
 
@@ -325,7 +325,7 @@ void taint2_enable_taint(void) {
     
     panda_enable_precise_pc(); //before_block_exec requires precise_pc for panda_current_asid
 
-    if (!execute_llvm){
+    if (!execute_llvm) {
         panda_enable_llvm();
     }
     panda_enable_llvm_helpers();
@@ -384,6 +384,11 @@ extern "C" void taint2_enable_sym(void) {
     taint2_enable_tainted_pointer();
 
     symexEnabled = true;
+}
+
+extern "C" void taint2_reset(void) {
+    shadow->reset();
+    memset(&taint_memlog, 0, sizeof(taint_memlog));
 }
 
 // The i386 doesn't update the condition codes whenever executing an emulated
@@ -510,7 +515,7 @@ void panda_virtual_string_read(CPUState *cpu, target_ulong vaddr, char *str) {
  * @brief Wrapper for running the registered `on_taint_change` PPP callbacks.
  * Called by the shadow memory implementation whenever changes occur to it.
  */
-void taint_state_changed(Shad *shad, uint64_t shad_addr, uint64_t size)
+void taint_state_changed(Shad *shad, uint64_t shad_addr, uint64_t size, const char* info="")
 {
     Addr addr;
     if (shad == &shadow->llv) {
@@ -546,7 +551,6 @@ bool before_block_exec_invalidate_opt(CPUState *cpu, TranslationBlock *tb) {
     }
     return false;
 }
-
 
 /**
  * @brief Basic initialization for `taint2` plugin.
@@ -604,6 +608,7 @@ bool init_plugin(void *self) {
     optimize_llvm = panda_parse_bool_opt(args, "opt", "run LLVM optimization on taint");
     std::cerr << PANDA_MSG "llvm optimizations " << PANDA_FLAG_STATUS(optimize_llvm) << std::endl;
     debug_taint = panda_parse_bool_opt(args, "debug", "enable taint debugging");
+    debug_taint = true;
     std::cerr << PANDA_MSG "taint debugging " << PANDA_FLAG_STATUS(debug_taint) << std::endl;
     detaint_cb0_bytes = panda_parse_bool_opt(args, "detaint_cb0", "detaint bytes whose control mask bits are 0");
     std::cerr << PANDA_MSG "detaint if control bits 0 " << PANDA_FLAG_STATUS(detaint_cb0_bytes) << std::endl;
