@@ -12,12 +12,12 @@ PANDAENDCOMMENT */
 // the PRIx64 macro
 #define __STDC_FORMAT_MACROS
 
-#include<vector>
-#include<iostream>
-#include<iomanip>
-#include<fstream>
-#include<string>
-#include<algorithm>
+#include <vector>
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <string>
+#include <algorithm>
 #include "panda/plugin.h"
 #include "panda/common.h"
 

@@ -223,7 +223,7 @@ void rr_print_history(void)
     } while (i != rr_hist_index);
 }
 
-// mz here to prevent the need to #include<stdio.h> in rr_log.h
+// mz here to prevent the need to #include <stdio.h> in rr_log.h
 void rr_signal_disagreement(RR_prog_point current, RR_prog_point recorded)
 {
     printf("FOUND DISAGREEMENT!\n");
