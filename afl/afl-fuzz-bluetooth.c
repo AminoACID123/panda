@@ -849,9 +849,9 @@ u8 handle_command(afl_state_t *afl, bt_state_t *bt, struct queue_entry *q,
 
   *size = cmd->plen + sizeof(*cmd);
 
-  cmd_fmt = get_hci_cmd(cmd->opcode);
+  if (cmd->opcode == BT_HCI_CMD_HOST_NUM_COMPLETED_PACKETS) return 0;
 
-  if (cmd_fmt->opcode == BT_HCI_CMD_HOST_NUM_COMPLETED_PACKETS) return 0;
+  cmd_fmt = get_hci_cmd(cmd->opcode);
 
   if (!cmd_fmt) { FATAL("Command 0x%04x not found", cmd->opcode); }
 

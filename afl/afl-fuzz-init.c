@@ -1754,6 +1754,7 @@ static void handle_resize(int sig) {
 static void handle_stop_sig(int sig) {
 
   (void)sig;
+  OKF("Stop signal %d", sig);
   afl_states_stop();
 
 }

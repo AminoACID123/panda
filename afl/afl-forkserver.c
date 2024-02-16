@@ -411,18 +411,9 @@ void afl_fsrv_deinit(afl_forkserver_t *fsrv) {
 
 void afl_fsrv_kill(afl_forkserver_t *fsrv) {
 
-  if (fsrv->child_pid > 0) { kill(fsrv->child_pid, fsrv->child_kill_signal); }
-  if (fsrv->fsrv_pid > 0) {
-
-    kill(fsrv->fsrv_pid, fsrv->fsrv_kill_signal);
-    waitpid(fsrv->fsrv_pid, NULL, 0);
-
+  for (int i = 0; i <= fsrv->child_cur; ++i) {
+    if (fsrv->children[i] > 0)
+      kill(fsrv->children[i], SIGKILL);
   }
-
-  close(fsrv->fsrv_ctl_fd);
-  close(fsrv->fsrv_st_fd);
-  fsrv->fsrv_pid = -1;
-  fsrv->child_pid = -1;
-
 }
 
