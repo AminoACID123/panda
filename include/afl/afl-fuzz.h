@@ -795,7 +795,12 @@ typedef struct afl_state {
 
   u8 new_bits_only;
 
+  u8 passed_evt_enum;
   u8 passed_iut_init;
+  u32 hci_evt_cnt;
+  u32 iut_evt_cnt;
+  u32 hci_le_evt_cnt;
+  u32 iut_le_evt_cnt;
 
 } afl_state_t;
 

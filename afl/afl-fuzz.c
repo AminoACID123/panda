@@ -136,6 +136,7 @@ void afl_run(pid_t pid) {
   afl->fsrv.trace_bits = afl->fsrv.trace_bits_mother;
   queue_entry_append_message_recv(afl, afl->queue_tmp);
   common_fuzz_stuff(afl, afl->queue_tmp, FSRV_RUN_OK);
+  memset(afl->virgin_bits, 255, afl->fsrv.map_size);
 
   // handle_iut_initialization(afl);
 
@@ -278,7 +279,7 @@ void afl_run(pid_t pid) {
           do {
             afl->current_entry = select_next_queue_entry(afl);
 
-          } while (unlikely(afl->current_entry >= afl->queued_items));
+          } while (unlikely((afl->current_entry >= afl->queued_items) || (afl->passed_iut_init && afl->current_entry == 0)));
 
           afl->queue_cur = afl->queue_buf[afl->current_entry];
         }
