@@ -178,12 +178,11 @@ asm volatile(                               \
 void HELPER(afl_maybe_log)(target_ulong cur_loc) {
 //   register uintptr_t afl_idx = cur_loc;
 //   INC_AFL_AREA(afl_idx);
-
+    register uintptr_t afl_idx = cur_loc;
   ++buzzer->shmem_trace[cur_loc];
-  if (unlikely(buzzer->shmem_trace[cur_loc]) == 0) {
+  if (unlikely(buzzer->shmem_trace[cur_loc] == 0)) {
     buzzer->shmem_trace[cur_loc] = 255;
   }
-
 }
 
 /* Generates TCG code for AFL's tracing instrumentation. */
@@ -199,8 +198,7 @@ static void afl_gen_trace(target_ulong cur_loc) {
     tcg_temp_free(cur_loc_v);
 }
 
-static void page_table_config_init(void)
-{
+static void page_table_config_init(void) {
     uint32_t v_l1_bits;
 
     assert(TARGET_PAGE_BITS);
@@ -1390,7 +1388,9 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
 
     tcg_ctx.cpu = ENV_GET_CPU(env);
     if (likely(buzzer && buzzer->current_task == TASK_FUZZ)) {
-        afl_gen_trace(pc);
+        tb_page_addr_t phy_addr;
+        phy_addr = get_page_addr_code((CPUArchState *)cpu->env_ptr, pc);
+        afl_gen_trace(phy_addr);
     }
     gen_intermediate_code(env, tb);
     tcg_ctx.cpu = NULL;

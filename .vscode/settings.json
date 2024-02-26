@@ -126,6 +126,7 @@
         "hci_format.h": "c",
         "xxhash.h": "c",
         "afl-fuzz-bluetooth.h": "c",
-        "stacktrace": "c"
+        "stacktrace": "c",
+        "limits.h": "c"
     }
 }

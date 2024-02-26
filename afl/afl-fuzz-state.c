@@ -182,7 +182,7 @@ void afl_states_stop(void) {
     el->stop_soon = 1;
     el->force_ui_update = 1;  // ensure the screen is reprinted
     el->stop_soon = 1;        // ensure everything is written
-    show_stats(el);           // print the screen one last time
+  //   show_stats(el);           // print the screen one last time
     write_bitmap(el);
     save_pklg(el);
 

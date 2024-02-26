@@ -12,55 +12,11 @@ static u8 ident;
 const u8 *bd_addr_local = "local";
 const u8 *bd_addr_remote = "remote";
 
-#define APPEND_EVENT_COMMON(_opc, _type, _size, _use_new)          \
-  u32             _total_size;                                     \
-  u8 *            _payload;                                        \
-  bt_hci_evt_hdr *_evt;                                            \
-  _type *         evt_params;                                      \
-  _total_size = 1 + sizeof(*_evt) + _size;                         \
-  _payload = queue_entry_append_message(q, _total_size, _use_new); \
-  _payload[0] = BT_H4_EVT_PKT;                                     \
-  _evt = (bt_hci_evt_hdr *)&_payload[1];                           \
-  _evt->evt = _opc;                                                \
-  _evt->plen = _size;                                              \
-  evt_params = (_type *)_evt->params;
-
-#define APPEND_LE_EVENT_COMMON(_opc, _type, _size, _use_new)       \
-  u32             _total_size;                                     \
-  u8 *            _payload;                                        \
-  bt_hci_evt_hdr *_evt;                                            \
-  _type *         evt_params;                                      \
-  _total_size = 2 + sizeof(*_evt) + _size;                         \
-  _payload = queue_entry_append_message(q, _total_size, _use_new); \
-  _payload[0] = BT_H4_EVT_PKT;                                     \
-  _evt = (bt_hci_evt_hdr *)&_payload[1];                           \
-  _evt->evt = BT_HCI_EVT_LE_META_EVENT;                            \
-  _evt->plen = 1 + _size;                                              \
-  _evt->params[0] = _opc;                                          \
-  evt_params = (_type *)&_evt->params[1];
-
-#define APPEND_L2CAP_COMMON(_handle, _cid, _type, _size, _use_new) \
-  u32             _total_size;                                     \
-  u8 *            _payload;                                        \
-  bt_hci_acl_hdr *_acl;                                            \
-  bt_l2cap_hdr *  _l2cap;                                          \
-  _type *         l2cap_params;                                    \
-  _total_size = 1 + sizeof(*_acl) + sizeof(*_l2cap) + _size;       \
-  _payload = queue_entry_append_message(q, _total_size, _use_new); \
-  _payload[0] = BT_H4_ACL_PKT;                                     \
-  _acl = (bt_hci_acl_hdr *)&_payload[1];                           \
-  _acl->handle = _handle | ((u16)PB_START << 12);                  \
-  _acl->dlen = sizeof(*_l2cap) + _size;                            \
-  _l2cap = (bt_l2cap_hdr *)_acl->data;                             \
-  _l2cap->len = _size;                                             \
-  _l2cap->cid = _cid;                                              \
-  l2cap_params = (_type *)_l2cap->data;
-
 void emit_message(afl_state_t *afl, bt_state_t *bt, struct queue_entry *q,
                   u32 i) {
-  message_t *message = (message_t *)q->messages[i];
+  message_t *message = q->messages[i];
   memcpy(afl->fsrv.shmem_fuzz, message, message->size + sizeof(message_t));
-  // qemu_hexdump(message->data, stdout, "Fuzz Send", message->size);
+  // qemu_hexdump(message, stdout, "Fuzz Send", message->size + sizeof(message_t));
   send_ctrl_step_one();
 }
 
@@ -1241,12 +1197,10 @@ u8 perform_dry_run(afl_state_t *afl, struct queue_entry *q) {
 
   afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
 
-  // OKF("perform_dry_run");
-
   for (int i = 0; i < q->message_cnt; ++i) {
     message = q->messages[i];
     if (message->type == FUZZ_SEND) {
-      // qemu_hexdump(message, stdout, "fuzz send",
+      //qemu_hexdump(message, stdout, "fuzz send",
       //              message->size + sizeof(*message));
       memcpy(afl->fsrv.shmem_fuzz, message, message->size + sizeof(*message));
       send_ctrl_step_one();

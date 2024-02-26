@@ -37,6 +37,7 @@ new_hci_evt_format(bool le, uint16_t opcode, uint32_t size, int offset1, int off
     fmt->status_offset = offset1;
     fmt->bd_addr_offset = offset2;
     fmt->handle_offset = offset3;
+    return fmt;
 }
 
 #define DEF_CMD(_opcode, _size, _rsp_size, _o1, _o2, _o3, _o4, _o5)                 \
