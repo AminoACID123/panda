@@ -169,6 +169,89 @@ iut_init_stage:
 
   goto abandon_entry;
 
+evt_enum_stage:
+
+  if (likely(afl->passed_evt_enum)) goto havoc_stage;
+
+  afl->stage_name = "EvtEnum";
+  afl->stage_short = "EvtEnum";
+  afl->stage_max = hci_evt_cnt() + hci_le_evt_cnt();
+
+  // Emit dummy hci event
+  for (int i = 0; i < 100; ++i) {
+    memset(afl->fsrv.trace_bits, 0, afl->fsrv.map_size);
+    queue_entry_clear_messages(q);
+    APPEND_EVENT_COMMON(q, 0xFF, u8, 255, 1);
+    afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
+    emit_message(afl, &afl->bt_state, q, 0);
+    recv_stat();
+    afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
+    classify_counts(&afl->fsrv);
+    has_new_bits(afl, afl->virgin_bits);
+  }
+
+  // Emit dummy hci le event
+  for (int i = 0; i < 100; ++i) {
+    memset(afl->fsrv.trace_bits, 0, afl->fsrv.map_size);
+    queue_entry_clear_messages(q);
+    APPEND_LE_EVENT_COMMON(q, 0xFF, u8, 254, 1);
+    afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
+    emit_message(afl, &afl->bt_state, q, 0);
+    recv_stat();
+    afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
+    classify_counts(&afl->fsrv);
+    has_new_bits(afl, afl->virgin_bits);
+  }
+
+  for (int i = 0, n = hci_evt_cnt(); i < n; ++i) {
+    hci_evt_format_t* fmt = get_hci_evt_by_index(i);
+    memset(afl->fsrv.trace_bits, 0, afl->fsrv.map_size);
+    queue_entry_clear_messages(q);
+    APPEND_EVENT_COMMON(q, fmt->opcode, u8, 255, 1);
+
+    afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
+    emit_message(afl, &afl->bt_state, q, 0);
+    recv_stat();
+    afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
+
+    ACTF("0x%02x", fmt->opcode);
+    classify_counts(&afl->fsrv);
+    if (2 == has_new_bits(afl, afl->virgin_bits)) {
+      OKF("0x%02x", fmt->opcode);
+      add_hci_iut_evt(fmt->opcode);
+    }
+  }
+
+  for (int i = 0, n = hci_le_evt_cnt(); i < n; ++i) {
+    hci_evt_format_t* fmt = get_hci_le_evt_by_index(i);
+    memset(afl->fsrv.trace_bits, 0, afl->fsrv.map_size);
+    queue_entry_clear_messages(q);
+    APPEND_LE_EVENT_COMMON(q, fmt->opcode, u8, 254, 1);
+
+    afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
+    emit_message(afl, &afl->bt_state, q, 0);
+    recv_stat();
+    afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());  
+
+    ACTF("0x%02x", fmt->opcode);
+    classify_counts(&afl->fsrv);
+    if (2 == has_new_bits(afl, afl->virgin_bits)) {
+      OKF("0x%02x", fmt->opcode);
+      add_hci_iut_le_evt(fmt->opcode);
+    }
+  }
+
+  afl->hci_evt_cnt = hci_evt_cnt();
+  afl->hci_le_evt_cnt = hci_le_evt_cnt();
+  afl->iut_evt_cnt = hci_iut_evt_cnt();
+  afl->iut_le_evt_cnt = hci_iut_le_evt_cnt();
+
+  afl->passed_evt_enum = 1;
+
+  ret_val = 1;
+
+  goto abandon_entry;
+
 havoc_stage:
 
   afl->stage_cur_byte = -1;

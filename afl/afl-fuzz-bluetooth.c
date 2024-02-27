@@ -22,7 +22,7 @@ void emit_message(afl_state_t *afl, bt_state_t *bt, struct queue_entry *q,
 
 void append_cmd_status(afl_state_t *afl, bt_state_t *bt, struct queue_entry *q,
                        u16 opcode, u8 status, u8 use_new) {
-  APPEND_EVENT_COMMON(BT_HCI_EVT_CMD_STATUS, bt_hci_evt_cmd_status,
+  APPEND_EVENT_COMMON(q, BT_HCI_EVT_CMD_STATUS, bt_hci_evt_cmd_status,
                       sizeof(bt_hci_evt_cmd_status), use_new);
   evt_params->ncmd = 10;
   evt_params->opcode = opcode;
@@ -32,7 +32,7 @@ void append_cmd_status(afl_state_t *afl, bt_state_t *bt, struct queue_entry *q,
 void append_cmd_complete(afl_state_t *afl, bt_state_t *bt,
                          struct queue_entry *q, u16 opcode, void *payload,
                          u32 size, u8 use_new) {
-  APPEND_EVENT_COMMON(BT_HCI_EVT_CMD_COMPLETE, bt_hci_evt_cmd_complete,
+  APPEND_EVENT_COMMON(q, BT_HCI_EVT_CMD_COMPLETE, bt_hci_evt_cmd_complete,
                       sizeof(bt_hci_evt_cmd_complete) + size, use_new);
   evt_params->ncmd = 10;
   evt_params->opcode = opcode;
@@ -48,13 +48,13 @@ void append_cmd_complete_success(afl_state_t *afl, bt_state_t *bt,
 
 void append_le_event(afl_state_t *afl, bt_state_t *bt, struct queue_entry *q,
                      u8 opcode, void *payload, u32 size, u8 use_new) {
-  APPEND_LE_EVENT_COMMON(opcode, u8, size, use_new);
+  APPEND_LE_EVENT_COMMON(q, opcode, u8, size, use_new);
   memcpy(evt_params, payload, size);
 }
 
 void append_discon_complete(afl_state_t *afl, bt_state_t *bt,
                             struct queue_entry *q, u16 handle, u8 use_new) {
-  APPEND_EVENT_COMMON(BT_HCI_EVT_DISCONNECT_COMPLETE,
+  APPEND_EVENT_COMMON(q, BT_HCI_EVT_DISCONNECT_COMPLETE,
                       bt_hci_evt_disconnect_complete,
                       sizeof(bt_hci_evt_disconnect_complete), use_new);
   evt_params->status = BT_HCI_ERR_SUCCESS;
@@ -64,7 +64,7 @@ void append_discon_complete(afl_state_t *afl, bt_state_t *bt,
 
 void append_conn_request(afl_state_t *afl, bt_state_t *bt,
                          struct queue_entry *q, u16 handle, u8 use_new) {
-  APPEND_EVENT_COMMON(BT_HCI_EVT_CONN_REQUEST, bt_hci_evt_conn_request,
+  APPEND_EVENT_COMMON(q, BT_HCI_EVT_CONN_REQUEST, bt_hci_evt_conn_request,
                       sizeof(bt_hci_evt_conn_request), use_new);
   evt_params->link_type = 1;
   memcpy(evt_params->bdaddr, bd_addr_remote, 6);
@@ -75,7 +75,7 @@ void append_conn_complete(afl_state_t *afl, bt_state_t *bt,
                           struct queue_entry *q, u16 handle, u8 status,
                           u8 use_new) {
   if (handle == BREDR_HANDLE) {
-    APPEND_EVENT_COMMON(BT_HCI_EVT_CONN_COMPLETE, bt_hci_evt_conn_complete,
+    APPEND_EVENT_COMMON(q, BT_HCI_EVT_CONN_COMPLETE, bt_hci_evt_conn_complete,
                         sizeof(bt_hci_evt_conn_complete), use_new);
     memcpy(evt_params->bdaddr, bd_addr_remote, 6);
     evt_params->handle = handle;
@@ -84,7 +84,7 @@ void append_conn_complete(afl_state_t *afl, bt_state_t *bt,
     evt_params->link_type = rand_below(afl, 3);
 
   } else {
-    APPEND_LE_EVENT_COMMON(BT_HCI_EVT_LE_CONN_COMPLETE,
+    APPEND_LE_EVENT_COMMON(q, BT_HCI_EVT_LE_CONN_COMPLETE,
                            bt_hci_evt_le_conn_complete,
                            sizeof(bt_hci_evt_le_conn_complete), use_new);
     rand_bytes(afl, evt_params, sizeof(*evt_params));
@@ -99,7 +99,7 @@ void append_conn_complete(afl_state_t *afl, bt_state_t *bt,
 void append_num_completed_packets(afl_state_t *afl, bt_state_t *bt,
                                   struct queue_entry *q, u16 handle,
                                   u8 use_new) {
-  APPEND_EVENT_COMMON(BT_HCI_EVT_NUM_COMPLETED_PACKETS,
+  APPEND_EVENT_COMMON(q, BT_HCI_EVT_NUM_COMPLETED_PACKETS,
                       bt_hci_evt_num_completed_packets,
                       sizeof(bt_hci_evt_num_completed_packets), use_new);
   evt_params->num_handles = 1;
@@ -180,7 +180,7 @@ void append_event_from_format(afl_state_t *afl, struct queue_entry *q,
     handle = BREDR_HANDLE;
   }
 
-  APPEND_EVENT_COMMON(opcode, u8, fmt->size, use_new);
+  APPEND_EVENT_COMMON(q, opcode, u8, fmt->size, use_new);
 
   if (fmt->le) { evt_params[0] = fmt->opcode; }
 
@@ -202,7 +202,7 @@ void append_event_from_format(afl_state_t *afl, struct queue_entry *q,
 
 void append_event(afl_state_t *afl, struct queue_entry *q, u8 opcode,
                   void *payload, u32 size, u8 use_new) {
-  APPEND_EVENT_COMMON(opcode, u8, size, use_new);
+  APPEND_EVENT_COMMON(q, opcode, u8, size, use_new);
   memcpy(evt_params, payload, size);
 }
 
@@ -238,7 +238,7 @@ void append_event_random(afl_state_t *afl, bt_state_t *bt,
 void append_l2cap_sig(afl_state_t *afl, bt_state_t *bt, struct queue_entry *q,
                       u16 handle, u16 cid, u8 ident, u8 code, void *payload,
                       u32 size, u8 use_new) {
-  APPEND_L2CAP_COMMON(handle, cid, bt_l2cap_sig_hdr,
+  APPEND_L2CAP_COMMON(q, handle, cid, bt_l2cap_sig_hdr,
                       sizeof(bt_l2cap_hdr) + size, use_new);
   l2cap_params->code = code;
   l2cap_params->ident = ident;
@@ -296,7 +296,7 @@ void append_l2cap_sig_random(afl_state_t *afl, bt_state_t *bt,
 void append_smp(afl_state_t *afl, bt_state_t *bt, struct queue_entry *q,
                 u16 handle, u16 cid, u8 code, void *payload, u32 size,
                 u8 use_new) {
-  APPEND_L2CAP_COMMON(handle, cid, bt_l2cap_smp_hdr,
+  APPEND_L2CAP_COMMON(q, handle, cid, bt_l2cap_smp_hdr,
                       sizeof(bt_l2cap_smp_hdr) + size, use_new);
   l2cap_params->code = code;
   memcpy(l2cap_params->data, payload, size);
@@ -341,7 +341,7 @@ void append_smp_random(afl_state_t *afl, bt_state_t *bt, struct queue_entry *q,
 
 void append_att(afl_state_t *afl, bt_state_t *bt, struct queue_entry *q,
                 u16 handle, u8 code, void *payload, u32 size, u8 use_new) {
-  APPEND_L2CAP_COMMON(handle, BT_L2CAP_CID_ATT, bt_l2cap_att_hdr,
+  APPEND_L2CAP_COMMON(q, handle, BT_L2CAP_CID_ATT, bt_l2cap_att_hdr,
                       sizeof(bt_l2cap_att_hdr) + size, use_new);
   l2cap_params->code = code;
   memcpy(l2cap_params->data, payload, size);
@@ -1200,13 +1200,17 @@ u8 perform_dry_run(afl_state_t *afl, struct queue_entry *q) {
   for (int i = 0; i < q->message_cnt; ++i) {
     message = q->messages[i];
     if (message->type == FUZZ_SEND) {
-      //qemu_hexdump(message, stdout, "fuzz send",
-      //              message->size + sizeof(*message));
+      qemu_hexdump(message, stdout, "fuzz send",
+                    message->size + sizeof(*message));
       memcpy(afl->fsrv.shmem_fuzz, message, message->size + sizeof(*message));
       send_ctrl_step_one();
-      recv_stat();
+      stat = recv_stat();
+      message = (message_t*)afl->fsrv.shmem_fuzz;
+      qemu_hexdump(message, stdout, "fuzz recv",
+                    message->size + sizeof(*message));
+      OKF("%d", stat);
     }
-
+    message = q->messages[i];
     bt_state_update(&q->bt_state, message);
     // } else if (message->type == FUZZ_RECV_OK) {
     //   stat = recv_stat();

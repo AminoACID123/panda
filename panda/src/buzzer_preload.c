@@ -2,6 +2,7 @@
 
 #include "panda/buzzer_userspace.h"
 #include <dlfcn.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -164,6 +165,7 @@ int socket(int domain, int type, int protocol)
 
     if (domain == PF_BLUETOOTH)
     {
+        force_map();
         bz_print("Open HCI socket");
         // return HCI_FD_DUMMY;
     }
