@@ -184,30 +184,16 @@ void HELPER(afl_maybe_log)(target_ulong cur_loc) {
     }
 }
 
-GHashTable* bb_map;
-
 /* Generates TCG code for AFL's tracing instrumentation. */
 static void afl_gen_trace(target_ulong cur_loc) {
 
-    static unsigned long i = 0;
-
-    if (unlikely(!bb_map)) {
-        bb_map = g_hash_table_new(g_direct_hash, g_direct_equal);
-    }
-
     // cur_loc = (cur_loc >> 4) ^ (cur_loc << 8);
     // cur_loc &= MAP_SIZE - 1;
-    // cur_loc = (uintptr_t)(afl_hash_ip((uint64_t)cur_loc));
-    // cur_loc &= (MAP_SIZE - 1);
 
-    gpointer val = g_hash_table_lookup(bb_map, GUINT_TO_POINTER(cur_loc));
-    if (!val) {
-        ++i;
-        g_hash_table_insert(bb_map, GUINT_TO_POINTER(cur_loc), GUINT_TO_POINTER(i));
-        val = GUINT_TO_POINTER(i);
-    }
+    cur_loc = (uintptr_t)(afl_hash_ip((uint64_t)cur_loc));
+    cur_loc &= (MAP_SIZE - 1);
 
-    TCGv cur_loc_v = tcg_const_tl(GPOINTER_TO_UINT(val));
+    TCGv cur_loc_v = tcg_const_tl(GPOINTER_TO_UINT(cur_loc));
     gen_helper_afl_maybe_log(cur_loc_v);
     tcg_temp_free(cur_loc_v);
 }
