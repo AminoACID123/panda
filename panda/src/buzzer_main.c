@@ -60,7 +60,8 @@ void buzzer_on_serial_recv(uint8_t* buf, uint32_t size) {
     }
         
     timer_del(recv_timeout_timer);
-    timer_mod(recv_complete_timer, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) + 50);
+    timer_mod(recv_complete_timer, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) + 
+        buzzer->char_transmit_time * BZ_RECV_TMOUT_SCALE * 2);
 }
 
 void buzzer_on_recv_complete(void* opaque) {

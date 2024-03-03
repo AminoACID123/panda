@@ -31,6 +31,7 @@
 #include "exec/address-spaces.h"
 #include "qemu/error-report.h"
 
+#include "panda/buzzer.h"
 #include "panda/rr/rr_log_all.h"
 
 //#define DEBUG_SERIAL
@@ -184,7 +185,7 @@ static void serial_update_parameters(SerialState *s)
     ssp.parity = parity;
     ssp.data_bits = data_bits;
     ssp.stop_bits = stop_bits;
-    s->char_transmit_time =  (NANOSECONDS_PER_SECOND / speed) * frame_size;
+    buzzer->char_transmit_time = s->char_transmit_time =  (NANOSECONDS_PER_SECOND / speed) * frame_size;
     qemu_chr_fe_ioctl(&s->chr, CHR_IOCTL_SERIAL_SET_PARAMS, &ssp);
 
     DPRINTF("speed=%d parity=%c data=%d stop=%d\n",
@@ -910,7 +911,7 @@ static void serial_reset(void *opaque)
     s->mcr = UART_MCR_OUT2;
     s->scr = 0;
     s->tsr_retry = 0;
-    s->char_transmit_time = (NANOSECONDS_PER_SECOND / 9600) * 10;
+    buzzer->char_transmit_time = s->char_transmit_time = (NANOSECONDS_PER_SECOND / 9600) * 10;
     s->poll_msl = 0;
 
     s->timeout_ipending = 0;

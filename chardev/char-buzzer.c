@@ -35,7 +35,7 @@ static int char_buzzer_recv(Chardev *chr, const uint8_t *buf, int len)
         d->rx_work.buf[d->rx_work.pos + i] = buf[i];
     }
     d->rx_work.pos += len;
-    timer_mod(d->recv_timer, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) + s->char_transmit_time * 4);
+    timer_mod(d->recv_timer, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) + s->char_transmit_time * BZ_RECV_TMOUT_SCALE);
     return len;
 }
 

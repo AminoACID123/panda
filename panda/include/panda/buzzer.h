@@ -12,6 +12,7 @@ extern "C" {
 #include <sys/types.h>
 
 #define BZ_TMOUT_MS 100
+#define BZ_RECV_TMOUT_SCALE 4
 #define BZ_MSG_SIZE (1 << 16)
 #define BZ_TRACE_SIZE (1 << 20)
 #define BZ_REPLAY_LOG "/tmp/buzzer-log"
@@ -87,6 +88,7 @@ typedef struct buzzer_state {
   /* Runtime */
   bool stop_cpu;
   bool in_buzzer_mode;
+  uint32_t char_transmit_time;
   uint8_t current_task;
   uint8_t *shmem_message;
   uint8_t *shmem_trace;
