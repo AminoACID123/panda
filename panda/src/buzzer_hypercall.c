@@ -6,7 +6,7 @@
 #include "cpu.h"
 #include "panda/debug.h"
 #include "panda/buzzer.h"
-#include "panda/buzzer_userspace.h"
+#include "panda/buzzer_hypercall.h"
 #include "qom/cpu.h"
 #include "qemu/typedefs.h"
 #include <stdint.h>
@@ -159,6 +159,15 @@ static void buzzer_handle_hypercall_req_file(CPUState* cpu) {
     harness_state_i++;
 }
 
+static void buzzer_handle_hypercall_kernel_info(CPUState* cpu) {
+    target_ulong addr = reg_arg0(cpu);
+    if (bz_virtual_memory_read(cpu, addr, (uint8_t*)&buzzer->kernel_info, sizeof(kernelinfo)) != MEMTX_OK) {
+        FATAL("Failed to read kernel info\n");
+    }
+    
+    OKF("Read kernel info complete: %p", buzzer->kernel_info.task.current_task_addr);
+}
+
 bool buzzer_callback_hypercall(void* cpu) {
     switch (reg_cmd(((CPUState*)cpu)))
     {
@@ -192,6 +201,10 @@ bool buzzer_callback_hypercall(void* cpu) {
 
     case BZ_HYPERCALL_REQ_FILE:
         buzzer_handle_hypercall_req_file(cpu);
+        return true;
+    
+    case BZ_HYPERCALL_KERNEL_INFO:
+        buzzer_handle_hypercall_kernel_info(cpu);
         return true;
 
     default:

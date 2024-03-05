@@ -1,5 +1,3 @@
-#include "panda/buzzer_userspace.h"
-
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -13,7 +11,7 @@
 #include <sys/types.h>
 #include <termio.h>
 #include <termios.h>
-
+#include "panda/buzzer_hypercall.h"
 
 #define FATAL(_cond, _msg...)		\
 	do {                            \
@@ -53,6 +51,7 @@ bool flowctrl = true;
 HarnessState harness_state;
 char* target;
 
+int open_serial(const char *path);
 int open_serial(const char *path)
 {
 	struct termios ti;
@@ -86,6 +85,7 @@ int open_serial(const char *path)
 	return fd;
 }
 
+int attach_device(void);
 int attach_device(void)
 {
 	int fd, ret;
@@ -107,6 +107,7 @@ int attach_device(void)
     return ret;
 }
 
+void download_files(void);
 void download_files(void) {
 	int ret = 0;
 	FILE* file = NULL;
@@ -146,6 +147,7 @@ void download_files(void) {
 
 }
 
+void run_target(void);
 void run_target(void) {
 
 	char* ld_library_path = "/tmp";

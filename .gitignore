@@ -173,3 +173,5 @@ auto_pydoc
 auto_pydoc/pandare
 
 buzzer_loader
+*.cmd
+*.order

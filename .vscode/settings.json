@@ -127,6 +127,10 @@
         "xxhash.h": "c",
         "afl-fuzz-bluetooth.h": "c",
         "stacktrace": "c",
-        "limits.h": "c"
+        "limits.h": "c",
+        "un.h": "c",
+        "buzzer_hypercall.h": "c",
+        "termios.h": "c",
+        "errno.h": "c"
     }
 }

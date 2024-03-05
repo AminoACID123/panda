@@ -462,7 +462,7 @@ void on_get_current_process(CPUState *env, OsiProc **out) {
             strncpy(cached_name, p->name, ki.task.comm_size);
             cached_pid = p->pid;
             cached_ppid = p->ppid;
-	    cached_start_time = p->create_time;
+	        cached_start_time = p->create_time;
             cached_comm_ptr = panda_map_virt_to_host(
                 env, ts + ki.task.comm_offset, ki.task.comm_size);
         } else {
@@ -1268,8 +1268,7 @@ bool init_plugin(void *self) {
     PPP_REG_CB("osi", on_get_stack_mappings, on_get_stack_mappings);
     PPP_REG_CB("osi", on_get_unknown_mappings, on_get_unknown_mappings);
     PPP_REG_CB("osi", on_get_mapping_by_addr, on_get_mapping_by_addr);
-    PPP_REG_CB("osi", on_get_mapping_base_address_by_name,
-        on_get_mapping_base_address_by_name);
+    PPP_REG_CB("osi", on_get_mapping_base_address_by_name, on_get_mapping_base_address_by_name);
     PPP_REG_CB("osi", on_has_mapping_prefix, on_has_mapping_prefix);
     PPP_REG_CB("osi", on_get_current_thread, on_get_current_thread);
     PPP_REG_CB("osi", on_get_process_pid, on_get_process_pid);

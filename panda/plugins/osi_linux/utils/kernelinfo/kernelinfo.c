@@ -160,11 +160,11 @@ int init_module(void)
 #if defined __i386__ || defined __x86_64__
 	printk(KERN_INFO "task.per_cpu_offsets_addr = %llu\n", (u64)(uintptr_t)&__per_cpu_offset);
 	printk(KERN_INFO "task.per_cpu_offset_0_addr = %llu\n", (u64)(uintptr_t)__per_cpu_offset[0]);
-	printk(KERN_INFO "task.current_task_addr = %llu\n", (u64)(uintptr_t)&current_task);
+	printk(KERN_INFO "task.current_task_addr = %llu\n", (u64)(uintptr_t)&pcpu_hot.current_task);
 	printk(KERN_INFO "task.init_addr = %llu\n", (u64)(uintptr_t)(task_struct__p));
 	printk(KERN_INFO "#task.per_cpu_offsets_addr = %08llX\n", (u64)(uintptr_t)&__per_cpu_offset);
 	printk(KERN_INFO "#task.per_cpu_offset_0_addr = 0x%08llX\n", (u64)(uintptr_t)__per_cpu_offset[0]);
-	printk(KERN_INFO "#task.current_task_addr = 0x%08llX\n", (u64)(uintptr_t)&current_task);
+	printk(KERN_INFO "#task.current_task_addr = 0x%08llX\n", (u64)(uintptr_t)&pcpu_hot.current_task);
 	printk(KERN_INFO "#task.init_addr = 0x%08llX\n", (u64)(uintptr_t)task_struct__p);
 
 #else
@@ -184,7 +184,9 @@ int init_module(void)
 	PRINT_OFFSET(task_struct__p,		pid,			"task");
 	PRINT_OFFSET(task_struct__p,		tgid,			"task");
 	PRINT_OFFSET(task_struct__p,		group_leader,	"task");
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,7,0)
 	PRINT_OFFSET(task_struct__p,		thread_group,	"task");
+#endif
 	PRINT_OFFSET(task_struct__p,		real_parent,	"task");
 	PRINT_OFFSET(task_struct__p,		parent,			"task");
 	PRINT_OFFSET(task_struct__p,		mm,				"task");
@@ -202,7 +204,9 @@ int init_module(void)
 	PRINT_OFFSET(cred__p,				egid,			"cred");
 
 	PRINT_SIZE(*init_task.mm,			"size",			"mm");
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0)
 	PRINT_OFFSET(mm_struct__p,			mmap,			"mm");
+#endif
 	PRINT_OFFSET(mm_struct__p,			pgd,			"mm");
 	PRINT_OFFSET(mm_struct__p,			arg_start,		"mm");
 	PRINT_OFFSET(mm_struct__p,			start_brk,		"mm");
@@ -213,7 +217,9 @@ int init_module(void)
 	PRINT_OFFSET(vm_area_struct__p,		vm_mm,			"vma");
 	PRINT_OFFSET(vm_area_struct__p,		vm_start,		"vma");
 	PRINT_OFFSET(vm_area_struct__p,		vm_end,			"vma");
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0)
 	PRINT_OFFSET(vm_area_struct__p,		vm_next,		"vma");
+#endif
 	PRINT_OFFSET(vm_area_struct__p,		vm_flags,		"vma");
 	PRINT_OFFSET(vm_area_struct__p,		vm_file,		"vma");
 

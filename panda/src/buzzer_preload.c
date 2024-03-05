@@ -1,10 +1,10 @@
 #define _GNU_SOURCE
 
-#include "panda/buzzer_userspace.h"
 #include <dlfcn.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,6 +15,9 @@
 #include <sys/ucontext.h>
 #include <sys/un.h>
 #include <sys/mman.h>
+#include <pthread.h>
+
+#include "panda/buzzer_hypercall.h"
 
 #define HCI_FD_DUMMY (123)
 
@@ -22,6 +25,7 @@ static bool asan_enabled;
 
 /* Crash Handling*/
 
+char* get_asan_log(void);
 char* get_asan_log(void){
 
     if (!getenv("ASAN_OPTIONS"))
@@ -116,6 +120,7 @@ static void fault_handler_asan(int signo, siginfo_t *info, void *extra){
     bz_panic("%s\n%s", context_str, asan_log);
 }
 
+void config_handler(void);
 void config_handler(void){
     if(!asan_enabled) {
         set_handler(fault_handler);
@@ -185,6 +190,7 @@ int socket(int domain, int type, int protocol)
 //     return 0;
 // }
 
+void force_map(void);
 void force_map(void) {
     char line[1024];
     FILE *in_file = fopen("/proc/self/maps", "r");
@@ -202,7 +208,26 @@ void force_map(void) {
     fclose(in_file);
 }
 
+int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                          void *(*start_routine) (void *), void *arg) {
+                            
+    int (*original_pthread_create)(pthread_t *thread, 
+        const pthread_attr_t *attr, 
+        void *(*start_routine) (void *), 
+        void *arg);
+    
+    original_pthread_create = dlsym(RTLD_NEXT,"pthread_create");
+
+    return (*original_pthread_create)(thread, attr, start_routine, arg);
+}
+
 /* Main Entrance */
+int __libc_start_main(int (*main) (int,char **,char **),
+              int argc,char **ubp_av,
+              void (*init) (void),
+              void (*fini)(void),
+              void (*rtld_fini)(void),
+              void (*stack_end));
 int __libc_start_main(int (*main) (int,char **,char **),
               int argc,char **ubp_av,
               void (*init) (void),

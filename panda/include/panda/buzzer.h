@@ -7,6 +7,7 @@ extern "C" {
 
 #include "afl/debug.h"
 #include "panda/compiler.h"
+#include "panda/kernelinfo.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>
@@ -46,6 +47,11 @@ typedef enum {
   STAT_RUN_TMOUT,   // The input message results in a timeout
   STAT_RUN_OK       // A reply message has been received
 } BuzzerStatus;
+
+typedef enum {
+  LINUX_USER = 0,
+  LINUX_KERNEL,
+};
 
 enum { TASK_FUZZ = 0, TASK_EXTRACT_EVENTS, TASK_EXTRACT_LE_EVENTS, PKT_DEP };
 
@@ -88,8 +94,10 @@ typedef struct buzzer_state {
   /* Runtime */
   bool stop_cpu;
   bool in_buzzer_mode;
+  kernelinfo kernel_info;
   uint32_t char_transmit_time;
   uint8_t current_task;
+  uint8_t target_type;
   uint8_t *shmem_message;
   uint8_t *shmem_trace;
   uint8_t *shmem_trace_child;
