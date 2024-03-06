@@ -1,18 +1,19 @@
 
 #include "qemu/osdep.h"
+#include "qemu/typedefs.h"
 
 #include "afl/afl-fuzz.h"
 #include "afl/debug.h"
 #include "cpu.h"
 #include "panda/debug.h"
-#include "panda/buzzer.h"
+
 #include "panda/buzzer_hypercall.h"
 #include "qom/cpu.h"
-#include "qemu/typedefs.h"
+
 #include <stdint.h>
 #include <dirent.h>
 
-
+#include "panda/buzzer.h"
 #include "panda/plugin.h"
 #include "panda/common.h"
 
@@ -138,7 +139,8 @@ static void buzzer_handle_hypercall_req_harness_info(CPUState* cpu) {
 }
 
 static void buzzer_handle_hypercall_req_file(CPUState* cpu) {
-    char* fn = alloc_printf("%s/%s", buzzer->target_dir, harness_state->files[harness_state_i].name);
+    char* fn = alloc_printf("%s/%s", 
+        buzzer->target_dir, harness_state->files[harness_state_i].name);
     uint32_t size = harness_state->files[harness_state_i].size;
     FILE* f = fopen(fn, "r");
     bz_buffer = (char*)realloc(bz_buffer, size);
@@ -161,11 +163,23 @@ static void buzzer_handle_hypercall_req_file(CPUState* cpu) {
 
 static void buzzer_handle_hypercall_kernel_info(CPUState* cpu) {
     target_ulong addr = reg_arg0(cpu);
-    if (bz_virtual_memory_read(cpu, addr, (uint8_t*)&buzzer->kernel_info, sizeof(kernelinfo)) != MEMTX_OK) {
+    if (panda_virtual_memory_read(cpu, addr, 
+        (uint8_t*)&buzzer->kernel_info, sizeof(kernelinfo)) != MEMTX_OK) {
         FATAL("Failed to read kernel info\n");
     }
-    
-    OKF("Read kernel info complete: %p", buzzer->kernel_info.task.current_task_addr);
+    OKF("Read kernel info complete: %p", 
+        buzzer->kernel_info.task.per_cpu_offset_0_addr);
+}
+
+static void buzzer_handle_hypercall_kernel_switch_task_hook_addr(CPUState* cpu) {
+    buzzer->kernel_info.task.switch_task_hook_addr = reg_arg0(cpu);
+    OKF("Read switch task hook addr: " TARGET_PTR_FMT, 
+        buzzer->kernel_info.task.switch_task_hook_addr);
+}
+
+static void buzzer_handle_hypercall_monitor_thread(CPUState* cpu) {
+    buzzer->target_pid = reg_arg0(cpu);
+    OKF("Read target pid: %u", buzzer->target_pid);
 }
 
 bool buzzer_callback_hypercall(void* cpu) {
@@ -205,6 +219,14 @@ bool buzzer_callback_hypercall(void* cpu) {
     
     case BZ_HYPERCALL_KERNEL_INFO:
         buzzer_handle_hypercall_kernel_info(cpu);
+        return true;
+    
+    case BZ_HYPERCALL_KERNEL_SWITCH_TASK_HOOK_ADDR:
+        buzzer_handle_hypercall_kernel_switch_task_hook_addr(cpu);
+        return true;
+    
+    case BZ_HYPERCALL_MONITOR_THREAD:
+        buzzer_handle_hypercall_monitor_thread(cpu);
         return true;
 
     default:

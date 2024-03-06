@@ -24,7 +24,7 @@ extern "C" {
 #define STAT_READ_FD 193
 
 // Control commands
-typedef enum {
+enum {
   CTRL_STOP_CPU = 1, // Stop virtual cpu but do not exit process
   CTRL_EXIT,         // Exit the current session (used in record mode)
   CTRL_EXIT_COV,     // Exit the current session and report coverage
@@ -36,9 +36,9 @@ typedef enum {
   CTRL_START_RECORD,      // Start a record fuzz session
   CTRL_EXTRACT_EVENTS,    // Extract event types of IUT
   CTRL_EXTRACT_LE_EVENTS, // Extract le event types of IUT
-} BuzzerControl;
+};
 
-typedef enum {
+enum {
   STAT_FSRV_UP = 0, // Forkserver is up
   STAT_CHILD_EXIT,  // A session completed (child exited)
   STAT_STEP_ONE,    // A single message has been received and processed
@@ -46,9 +46,9 @@ typedef enum {
   STAT_RUN_CRASH,   // The input message results in a crash
   STAT_RUN_TMOUT,   // The input message results in a timeout
   STAT_RUN_OK       // A reply message has been received
-} BuzzerStatus;
+};
 
-typedef enum {
+enum {
   LINUX_USER = 0,
   LINUX_KERNEL,
 };
@@ -95,6 +95,7 @@ typedef struct buzzer_state {
   bool stop_cpu;
   bool in_buzzer_mode;
   kernelinfo kernel_info;
+  pid_t target_pid;
   uint32_t char_transmit_time;
   uint8_t current_task;
   uint8_t target_type;

@@ -33,6 +33,9 @@
 // Kernel info for OSI
 #define BZ_HYPERCALL_KERNEL_INFO 29
 
+// Kernel info (switch task hook addr)
+#define BZ_HYPERCALL_KERNEL_SWITCH_TASK_HOOK_ADDR 30
+
 #define BZ_ENV_ASAN_ENABLED "ASAN_ENABLED"
 
 typedef struct {
@@ -151,6 +154,13 @@ static inline void bz_hypercall(uintptr_t eax, uintptr_t ebx, uintptr_t ecx,
   ({                                                                           \
     uintptr_t _ret = 0;                                                        \
     bz_hypercall_1(KERNEL_INFO, _kernelinfo);                                  \
+    _ret;                                                                      \
+  })
+
+#define bz_kernel_switch_task_hook_addr(_addr)                                 \
+  ({                                                                           \
+    uintptr_t _ret = 0;                                                        \
+    bz_hypercall_1(KERNEL_SWITCH_TASK_HOOK_ADDR, _addr);                       \
     _ret;                                                                      \
   })
 

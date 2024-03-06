@@ -27,6 +27,7 @@
 #include "qemu/main-loop.h"
 #include "sysemu/sysemu.h"
 #include "vl.h"
+#include "panda/kernelinfo.h"
 
 buzzer_state_t* buzzer;
 static QEMUTimer* recv_timeout_timer;

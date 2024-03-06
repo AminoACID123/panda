@@ -174,15 +174,15 @@ static int __init get_kernelinfo_init(void)
 	kernel_info.version.c = (LINUX_VERSION_CODE & 0xFF),
 
 #if defined __i386__ || defined __x86_64__
-	kernel_info.task.per_cpu_offsets_addr = (u64)(uintptr_t)&__per_cpu_offset,
-	kernel_info.task.per_cpu_offset_0_addr = (u64)(uintptr_t)__per_cpu_offset[0],
-	kernel_info.task.current_task_addr = (u64)(uintptr_t)&pcpu_hot.current_task,
-	kernel_info.task.init_addr = (u64)(uintptr_t)(task_struct__p),
+	kernel_info.task.per_cpu_offsets_addr = (u64)&__per_cpu_offset,
+	kernel_info.task.per_cpu_offset_0_addr = (u64)__per_cpu_offset[0],
+	kernel_info.task.current_task_addr = (u64)&pcpu_hot.current_task,
+	kernel_info.task.init_addr = (u64)(task_struct__p),
 #else
 	kernel_info.task.per_cpu_offsets_addr = 0,
 	kernel_info.task.per_cpu_offset_0_addr = 0,
-	kernel_info.task.current_task_addr = (u64)(uintptr_t)(task_struct__p),
-	kernel_info.task.init_addr = (u64)(uintptr_t)(task_struct__p),
+	kernel_info.task.current_task_addr = (u64)(task_struct__p),
+	kernel_info.task.init_addr = (u64)(task_struct__p),
 #endif
 
 	SET_SIZE(kernel_info, task, size, init_task),
@@ -229,7 +229,7 @@ static int __init get_kernelinfo_init(void)
 	SET_OFFSET(kernel_info, vma, vm_area_struct__p, vm_end),
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0)
-		SET_OFFSET(kernel_info, vma, vm_area_struct__p, vm_next),
+	SET_OFFSET(kernel_info, vma, vm_area_struct__p, vm_next),
 #endif
 
 	SET_OFFSET(kernel_info, vma, vm_area_struct__p, vm_flags),

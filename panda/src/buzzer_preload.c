@@ -15,9 +15,11 @@
 #include <sys/ucontext.h>
 #include <sys/un.h>
 #include <sys/mman.h>
+#include <unistd.h>
 #include <pthread.h>
 
 #include "panda/buzzer_hypercall.h"
+#include "panda/kernelinfo.h"
 
 #define HCI_FD_DUMMY (123)
 
@@ -162,24 +164,6 @@ void __assert_perror_fail (int __errnum, const char *__file, unsigned int __line
 
 
 
-/* HCI Interaction */
-int socket(int domain, int type, int protocol)
-{
-    int (*original_socket)(int ,int, int);
-    original_socket = dlsym(RTLD_NEXT, "socket");
-
-    if (domain == PF_BLUETOOTH)
-    {
-        force_map();
-        bz_print("Open HCI socket");
-        // return HCI_FD_DUMMY;
-    }
-    // else
-    // {
-        return (*original_socket)(domain, type, protocol);
-    // }
-}
-
 // int ioctl(int fd, unsigned long request, ...)
 // {
 //     return 0;
@@ -208,18 +192,59 @@ void force_map(void) {
     fclose(in_file);
 }
 
-int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
-                          void *(*start_routine) (void *), void *arg) {
-                            
-    int (*original_pthread_create)(pthread_t *thread, 
-        const pthread_attr_t *attr, 
-        void *(*start_routine) (void *), 
-        void *arg);
-    
-    original_pthread_create = dlsym(RTLD_NEXT,"pthread_create");
+bool read_task_switch_hook_addr(const char* identifier);
+bool read_task_switch_hook_addr(const char* identifier) {
+    FILE * fp;
+    char * line = NULL;
+    ssize_t read;
+    ssize_t len;
+    char *tmp;
+    uintptr_t address = 0x0;
+    uint8_t identifier_len = strlen(identifier);
 
-    return (*original_pthread_create)(thread, attr, start_routine, arg);
+    fp = fopen("/proc/kallsyms", "r");
+    if (fp == NULL){
+        return address;
+    }
+
+    while ((read = getline(&line, &len, fp)) != -1) {
+        if(strstr(line, identifier) ){
+            address = strtoull(strtok(line, " "), NULL, 16);
+            break;
+        }
+    }
+
+    fclose(fp);
+    if (line){
+        free(line);
+    }
+    
+    if (address) {
+        bz_kernel_switch_task_hook_addr(address);
+        return true;
+    }
+
+    return false;
 }
+
+/* HCI Interaction */
+int socket(int domain, int type, int protocol)
+{
+    int (*original_socket)(int ,int, int);
+    original_socket = dlsym(RTLD_NEXT, "socket");
+
+    if (domain == PF_BLUETOOTH)
+    {
+        force_map();
+        bz_print("Open HCI socket");
+        // return HCI_FD_DUMMY;
+    }
+    // else
+    // {
+        return (*original_socket)(domain, type, protocol);
+    // }
+}
+
 
 /* Main Entrance */
 int __libc_start_main(int (*main) (int,char **,char **),
@@ -246,9 +271,15 @@ int __libc_start_main(int (*main) (int,char **,char **),
     original__libc_start_main = dlsym(RTLD_NEXT,"__libc_start_main");
     asan_enabled = (getenv(BZ_ENV_ASAN_ENABLED) != NULL);
 
-    bz_print("Installing crash handlers");
+    // bz_print("Installing crash handlers");
     init_crash_handling();
-    bz_print("Crash handlers handled");
+    // bz_print("Crash handlers handled");
+
+    if (!read_task_switch_hook_addr("t __pfx_finish_task_switch")) {
+        read_task_switch_hook_addr("t finish_task_switch");
+    }
+
+    bz_monitor_thread(getpid());
 
     return original__libc_start_main(main,argc,ubp_av, init,fini,rtld_fini,stack_end);
 }
