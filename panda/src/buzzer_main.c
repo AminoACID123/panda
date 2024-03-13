@@ -21,6 +21,7 @@
 #include "panda/rr/rr_log.h"
 #include "panda/rr/rr_api.h"
 #include "panda/rr/rr_log_all.h"
+#include "panda/tcg-utils.h"
 #include "qemu-common.h"
 
 #include "qemu/typedefs.h"
@@ -101,10 +102,34 @@ void buzzer_on_replay_end(void) {
 }
 
 
-void buzzer_after_machine_init(void) {
+void buzzer_callback_after_machine_init(void) {
     qemu_set_fd_handler(CTRL_READ_FD, on_ctrl_recv, NULL, NULL);
     recv_timeout_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL, on_timeout, NULL);
     recv_complete_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, buzzer_on_recv_complete, NULL);
+}
+
+void buzzer_replay_pklg(char* path) {
+    uint32_t message_cnt = 0;
+    message_t* message = realloc(NULL, sizeof(message_t));
+    FILE* f = fopen(path, "rb");
+
+    fread(&message_cnt, sizeof(uint32_t), 1, f);
+
+    for (uint32_t i = 0; i < message_cnt; ++i) {
+        fread(message, sizeof(*message), 1, f);
+
+        message = realloc(message, message->size + sizeof(message_t));
+
+        fread(message->data, 1, message->size, f);
+
+        if (message->type != FUZZ_SEND)
+            continue;
+
+        memcpy(buzzer->shmem_message, message, message->size + sizeof(message_t));
+
+        send_ctrl_step_one();
+        recv_stat();
+    }
 }
 
 static void launch_children(void) {
@@ -125,6 +150,9 @@ static void launch_children(void) {
         close(ctrl_pipe[1]);
         close(stat_pipe[0]);
         close(stat_pipe[1]);
+
+        buzzer->root_fsrv = getpid();
+        buzzer->bb_map = shm_hash_map_new(MAP_SIZE << 2);
         return;
     }
 
@@ -144,6 +172,12 @@ static void launch_children(void) {
     message_t* initial_message = (message_t*)buzzer->shmem_message;
     qemu_hexdump(initial_message->data, stdout, "recv", initial_message->size);
 
+    if (buzzer->replay_path[0] != '\0') {
+        buzzer_replay_pklg(buzzer->replay_path);
+        kill(pid, SIGKILL);
+        exit(0);
+    }
+
     // Create forkserver
     send_ctrl_create_fsrv();
 
@@ -157,6 +191,7 @@ int buzzer_main(int argc, char **argv, char **envp) {
         buzzer->shmem_message = mmap(NULL, MAX_FILE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
         buzzer->shmem_trace_child = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
         buzzer->shmem_trace_mother = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        buzzer->shmem_trace_root = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
         buzzer->shmem_trace = buzzer->shmem_trace_mother;
         buzzer->in_buzzer_mode = true;
         launch_children();

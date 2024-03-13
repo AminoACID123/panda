@@ -120,16 +120,26 @@ u8 fuzz_one_original(afl_state_t *afl) {
 
 iut_init_stage:
 
-  if (likely(afl->passed_iut_init)) goto havoc_stage;
+  if (likely(afl->passed_iut_init)) goto evt_enum_stage;
 
   afl->stage_name = "IutInit";
   afl->stage_short = "IutInit";
   afl->stage_max = 5;
 
+  // Handle IUT init stage.
+  // In IUT init stage, the host will perform mutual configuration with 
+  // the controller.
+
+  // An ideal way of handling IUT init is to explore IUT configuration
+  // space as much as possible.
+  // However, for now we just config IUT with a virtual controller with
+  // all possible features enabled.
+
   for (afl->stage_cur = 0; afl->stage_cur < afl->stage_max; ++afl->stage_cur) {
-    memset(afl->fsrv.trace_bits, 0, afl->fsrv.map_size);
-    queue_entry_clear_messages(q);
-    message = queue_entry_message_tail(afl->queue_cur);
+    memcpy(buzzer->shmem_trace_child, buzzer->shmem_trace_mother, afl->fsrv.map_size);
+    // queue_entry_clear_messages(q);
+    q->message_cnt = 1;
+    message = q->messages[0];
     fault = FSRV_RUN_OK;
     afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
 
@@ -177,37 +187,76 @@ evt_enum_stage:
   afl->stage_short = "EvtEnum";
   afl->stage_max = hci_evt_cnt() + hci_le_evt_cnt();
 
-  // Emit dummy hci event
-  for (int i = 0; i < 100; ++i) {
-    memset(afl->fsrv.trace_bits, 0, afl->fsrv.map_size);
+  {
     queue_entry_clear_messages(q);
-    APPEND_EVENT_COMMON(q, 0xFF, u8, 255, 1);
+    APPEND_EVENT_COMMON(q, 0x07, u8, 255, 1);
     afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
     emit_message(afl, &afl->bt_state, q, 0);
-    recv_stat();
+    status = recv_stat();
     afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
     classify_counts(&afl->fsrv);
     has_new_bits(afl, afl->virgin_bits);
   }
 
-  // Emit dummy hci le event
-  for (int i = 0; i < 100; ++i) {
-    memset(afl->fsrv.trace_bits, 0, afl->fsrv.map_size);
+  {
     queue_entry_clear_messages(q);
-    APPEND_LE_EVENT_COMMON(q, 0xFF, u8, 254, 1);
+    APPEND_EVENT_COMMON(q, 0xEF, u8, 10, 1);
     afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
     emit_message(afl, &afl->bt_state, q, 0);
-    recv_stat();
+    status = recv_stat();
     afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
     classify_counts(&afl->fsrv);
     has_new_bits(afl, afl->virgin_bits);
   }
+
+  {
+    queue_entry_clear_messages(q);
+    APPEND_LE_EVENT_COMMON(q, 0xEF, u8, 10, 1);
+    afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
+    emit_message(afl, &afl->bt_state, q, 0);
+    status = recv_stat();
+    afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
+    classify_counts(&afl->fsrv);
+    has_new_bits(afl, afl->virgin_bits);
+  }
+
+
+  // // Emit dummy hci event
+  // for (int i = 0; i < 100; ++i) {
+  //   memcpy(buzzer->shmem_trace_child, buzzer->shmem_trace_mother, afl->fsrv.map_size);
+  //   queue_entry_clear_messages(q);
+  //   APPEND_EVENT_COMMON(q, 0xFF, u8, 255, 1);
+  //   afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
+  //   emit_message(afl, &afl->bt_state, q, 0);
+  //   status = recv_stat();
+  //   if (status != STAT_RUN_TMOUT)
+  //     OKF("%d", status);
+  //   afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
+  //   classify_counts(&afl->fsrv);
+  //   has_new_bits(afl, afl->virgin_bits);
+  // }
+
+  // // Emit dummy hci le event
+  // for (int i = 0; i < 100; ++i) {
+  //   memcpy(buzzer->shmem_trace_child, buzzer->shmem_trace_mother, afl->fsrv.map_size);
+  //   queue_entry_clear_messages(q);
+  //   APPEND_LE_EVENT_COMMON(q, 0xFF, u8, 254, 1);
+  //   afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
+  //   emit_message(afl, &afl->bt_state, q, 0);
+  //   status = recv_stat();
+  //   if (status != STAT_RUN_TMOUT)
+  //     OKF("%d", status);
+  //   afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
+  //   classify_counts(&afl->fsrv);
+  //   has_new_bits(afl, afl->virgin_bits);
+  // }
 
   for (int i = 0, n = hci_evt_cnt(); i < n; ++i) {
     hci_evt_format_t* fmt = get_hci_evt_by_index(i);
-    memset(afl->fsrv.trace_bits, 0, afl->fsrv.map_size);
+    memcpy(buzzer->shmem_trace_child, buzzer->shmem_trace_mother, afl->fsrv.map_size);
     queue_entry_clear_messages(q);
-    APPEND_EVENT_COMMON(q, fmt->opcode, u8, 255, 1);
+    // fmt->opcode = 0x0F;
+    APPEND_EVENT_COMMON(q, fmt->opcode, u8, fmt->size, 1);
 
     afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
     emit_message(afl, &afl->bt_state, q, 0);
@@ -224,9 +273,9 @@ evt_enum_stage:
 
   for (int i = 0, n = hci_le_evt_cnt(); i < n; ++i) {
     hci_evt_format_t* fmt = get_hci_le_evt_by_index(i);
-    memset(afl->fsrv.trace_bits, 0, afl->fsrv.map_size);
+    memcpy(buzzer->shmem_trace_child, buzzer->shmem_trace_mother, afl->fsrv.map_size);
     queue_entry_clear_messages(q);
-    APPEND_LE_EVENT_COMMON(q, fmt->opcode, u8, 254, 1);
+    APPEND_LE_EVENT_COMMON(q, fmt->opcode, u8, fmt->size - 1, 1);
 
     afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
     emit_message(afl, &afl->bt_state, q, 0);

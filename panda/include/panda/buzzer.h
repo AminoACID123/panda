@@ -88,14 +88,18 @@ typedef struct buzzer_state {
   char out_dir[BZ_PATH_MAX];
   char target_dir[BZ_PATH_MAX];
   char target_file[BZ_PATH_MAX];
+  char replay_path[BZ_PATH_MAX];
+  bool enable_guest_print;
   bool enable_asan;
   int device_no;
 
   /* Runtime */
   bool stop_cpu;
   bool in_buzzer_mode;
+  bool update_bb_map;
+  bool update_parent_bb_map;
   kernelinfo kernel_info;
-  pid_t target_pid;
+  pid_t root_fsrv;
   uint32_t char_transmit_time;
   uint8_t current_task;
   uint8_t target_type;
@@ -103,22 +107,27 @@ typedef struct buzzer_state {
   uint8_t *shmem_trace;
   uint8_t *shmem_trace_child;
   uint8_t *shmem_trace_mother;
+  uint8_t *shmem_trace_root;
+
+  void* bb_map;
+
 } buzzer_state_t;
 
 extern buzzer_state_t *buzzer;
 
 void buzzer_load_plugins(void);
 void buzzer_init_plugins(void);
-void buzzer_fuzz_loop(pid_t pid);
 void buzzer_on_record_end(void);
 void buzzer_on_replay_end(void);
-void buzzer_on_cpu_stop(void *opaque);
 void buzzer_on_serial_recv(uint8_t *buf, uint32_t size);
-void buzzer_fuzz_start(void *);
-uint32_t buzzer_fuzz_step_one(uint8_t *buf, uint32_t size);
 void char_buzzer_send_packet(uint8_t *data, int len);
 void char_buzzer_send_packet_v(const struct iovec *iov, int iovcnt);
-void buzzer_after_machine_init(void);
+void buzzer_callback_after_machine_init(void);
+
+void *shm_hash_map_new(size_t n);
+void shm_hash_map_reserve(void *opaque, size_t n);
+uint32_t shm_hash_map_insert(void *opaque, uint64_t key);
+uint32_t shm_hash_map_lookup(void *table, uint64_t key);
 
 #define send_ctrl(_ctrl)                                                       \
   do {                                                                         \

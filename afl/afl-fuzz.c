@@ -46,7 +46,7 @@ extern u64 time_spent_working;
 #endif
 
 static void at_exit(void) {
-  // afl_states_stop();
+  afl_states_stop();
 }
 
 #ifndef AFL_LIB
@@ -136,7 +136,7 @@ void afl_run(pid_t pid) {
   afl->fsrv.trace_bits = afl->fsrv.trace_bits_mother;
   queue_entry_append_message_recv(afl, afl->queue_tmp);
   common_fuzz_stuff(afl, afl->queue_tmp, FSRV_RUN_OK);
-  memset(afl->virgin_bits, 255, afl->fsrv.map_size);
+  // memset(afl->virgin_bits, 255, afl->fsrv.map_size);
 
   // handle_iut_initialization(afl);
 

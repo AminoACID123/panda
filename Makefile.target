@@ -216,7 +216,6 @@ all-obj-$(CONFIG_SOFTMMU) += panda/src/panda_api.o
 ifdef CONFIG_SOFTMMU
 panda-all-obj-y += $(filter-out %main.o, $(common-obj-y))
 panda-all-obj-y += panda/src/panda_api.o
-panda-all-obj-y += panda/src/buzzer_main.o
 panda-all-obj-y += $(target-obj-y)
 panda-all-obj-y += $(qom-obj-y)
 panda-all-obj-$(CONFIG_SOFTMMU) += $(block-obj-y) $(chardev-obj-y) $(afl-obj-y)

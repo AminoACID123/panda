@@ -1256,10 +1256,10 @@ void pklg_write_header(FILE *f, u32 tv_sec, u32 tv_us, u8 packet_type,
       header.type = 0x00;
       break;
     case BT_H4_ACL_PKT:
-      header.type = fuzz_send ? 0x03 : 0x02;
+      header.type = (fuzz_send ? 0x03 : 0x02);
       break;
     case BT_H4_ISO_PKT:
-      header.type = fuzz_send ? 0x09 : 0x08;
+      header.type = (fuzz_send ? 0x09 : 0x08);
       break;
     case BT_H4_EVT_PKT:
       header.type = 0x01;

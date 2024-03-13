@@ -102,6 +102,8 @@ void helper_into(CPUX86State *env, int next_eip_addend)
     }
 }
 
+bool buzzer_callback_hypercall(CPUState* cpu);
+
 void helper_cpuid(CPUX86State *env)
 {
 

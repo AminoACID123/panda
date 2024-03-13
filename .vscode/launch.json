@@ -26,11 +26,11 @@
                 "/home/xaz/Documents/panda-work/BlueBench/targets/zephyr/buggy",
                 "-out",
                 "out",
-                "-display",
-                "none"
+                "-replay_path",
+                "out/queue_pklg/id:000002,src:000000,time:1193,execs:3,op:IutInit,pos:0,+cov"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build",
+            "cwd": "${workspaceFolder}/build/x86_64-softmmu",
             "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [

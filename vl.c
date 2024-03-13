@@ -3291,6 +3291,9 @@ int main_aux(int argc, char **argv, char **envp, PandaMainMode pmm)
             case QEMU_OPTION_out:
                 strcpy(buzzer->out_dir, optarg);
                 break;
+            case QEMU_OPTION_replay_path:
+                strcpy(buzzer->replay_path, optarg);
+                break;
             case QEMU_OPTION_target_file:
                 strcpy(buzzer->target_file, optarg);
                 break;
@@ -3299,6 +3302,9 @@ int main_aux(int argc, char **argv, char **envp, PandaMainMode pmm)
                 break;
             case QEMU_OPTION_enable_asan:
                 buzzer->enable_asan = true;
+                break;
+            case QEMU_OPTION_enable_guest_print:
+                buzzer->enable_guest_print = true;
                 break;
             case QEMU_OPTION_bt_dev:
                 buzzer->device_no = atoi(optarg);
@@ -5106,7 +5112,7 @@ int main_aux(int argc, char **argv, char **envp, PandaMainMode pmm)
     // Call PANDA post-machine init hook
     panda_callbacks_after_machine_init(first_cpu);
 
-    buzzer_after_machine_init();
+    buzzer_callback_after_machine_init();
 
     if (pmm == PANDA_INIT) return 0;
 

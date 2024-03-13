@@ -3341,6 +3341,14 @@ STEXI
 Enable address sanitizer in buzzer
 ETEXI
 
+DEF("enable-guest-print", 0, QEMU_OPTION_enable_guest_print, \
+    "-enable-guest-print     enable guest print in buzzer\n", QEMU_ARCH_ALL)
+STEXI
+@item -enable-guest-print
+@findex -enable-guest-print
+Enable guest print in buzzer
+ETEXI
+
 DEF("args", HAS_ARG, QEMU_OPTION_args, \
     "-args      arguments passed to buzzer target\n", QEMU_ARCH_ALL)
 STEXI
@@ -3355,6 +3363,14 @@ STEXI
 @item -out @var{str}
 @findex -out
 Set the directory to store fuzz output.
+ETEXI
+
+DEF("replay_path", HAS_ARG, QEMU_OPTION_replay_path, \
+    "-replay_path      pklg file path to perform replay\n", QEMU_ARCH_ALL)
+STEXI
+@item -replay_path @var{str}
+@findex -replay_path
+Set pklg file path to perform replay.
 ETEXI
 
 DEF("target-file", HAS_ARG, QEMU_OPTION_target_file, \

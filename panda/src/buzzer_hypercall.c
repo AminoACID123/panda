@@ -162,24 +162,24 @@ static void buzzer_handle_hypercall_req_file(CPUState* cpu) {
 }
 
 static void buzzer_handle_hypercall_kernel_info(CPUState* cpu) {
-    target_ulong addr = reg_arg0(cpu);
-    if (panda_virtual_memory_read(cpu, addr, 
-        (uint8_t*)&buzzer->kernel_info, sizeof(kernelinfo)) != MEMTX_OK) {
-        FATAL("Failed to read kernel info\n");
-    }
-    OKF("Read kernel info complete: %p", 
-        buzzer->kernel_info.task.per_cpu_offset_0_addr);
+    // target_ulong addr = reg_arg0(cpu);
+    // if (panda_virtual_memory_read(cpu, addr, 
+    //     (uint8_t*)&buzzer->kernel_info, sizeof(kernelinfo)) != MEMTX_OK) {
+    //     FATAL("Failed to read kernel info\n");
+    // }
+    // OKF("Read kernel info complete: %p", 
+    //     buzzer->kernel_info.task.per_cpu_offset_0_addr);
 }
 
 static void buzzer_handle_hypercall_kernel_switch_task_hook_addr(CPUState* cpu) {
-    buzzer->kernel_info.task.switch_task_hook_addr = reg_arg0(cpu);
-    OKF("Read switch task hook addr: " TARGET_PTR_FMT, 
-        buzzer->kernel_info.task.switch_task_hook_addr);
+    // buzzer->kernel_info.task.switch_task_hook_addr = reg_arg0(cpu);
+    // OKF("Read switch task hook addr: " TARGET_PTR_FMT, 
+    //     buzzer->kernel_info.task.switch_task_hook_addr);
 }
 
 static void buzzer_handle_hypercall_monitor_thread(CPUState* cpu) {
-    buzzer->target_pid = reg_arg0(cpu);
-    OKF("Read target pid: %u", buzzer->target_pid);
+    // buzzer->target_pid = reg_arg0(cpu);
+    // OKF("Read target pid: %u", buzzer->target_pid);
 }
 
 bool buzzer_callback_hypercall(void* cpu) {
@@ -198,7 +198,8 @@ bool buzzer_callback_hypercall(void* cpu) {
         return true;
 
     case BZ_HYPERCALL_PRINT:
-        buzzer_handle_hypercall_print(cpu);
+        if (buzzer->enable_guest_print)
+            buzzer_handle_hypercall_print(cpu);
         return true;
 
     case BZ_HYPERCALL_PANIC:

@@ -804,10 +804,15 @@ typedef struct afl_state {
 
 } afl_state_t;
 
+#define PKLG_CMD_PKT                0x00
+#define PKLG_EVT_PKT                0x01
+#define PKLG_ACL_PKT_HS_TO_CTRL     0x02
+#define PKLG_ACL_PKT_CTRL_TO_HS     0x03
+
 typedef struct pklg_header {
-  u32 size;
-  u32 tv_sec;
-  u32 tv_usec;
+  u32 size;     // Big endian
+  u32 tv_sec;   // Big endian
+  u32 tv_usec;  // Big endian
   u8 type;
   u8 data[];
 } __attribute__((packed)) pklg_header_t;

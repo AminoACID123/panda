@@ -165,38 +165,92 @@ bool parallel_cpus;
 /* translation block context */
 __thread int have_tb_lock;
 
-target_ulong afl_prev_loc;
+// target_ulong afl_prev_loc;
 
-#define INC_AFL_AREA(loc)                   \
-asm volatile(                               \
-    "addb $1, (%0, %1, 1)\n"                \
-    "adcb $0, (%0, %1, 1)\n"                \
-    : /* no out */                          \
-    : "r"(buzzer->shmem_trace), "r"(loc)    \
-    : "memory", "eax")
+// #define INC_AFL_AREA(loc)                   \
+// asm volatile(                               \
+//     "addb $1, (%0, %1, 1)\n"                \
+//     "adcb $0, (%0, %1, 1)\n"                \
+//     : /* no out */                          \
+//     : "r"(buzzer->shmem_trace), "r"(loc)    \
+//     : "memory", "eax")
 
-void HELPER(afl_maybe_log)(target_ulong cur_loc) {
+
+static inline void buzzer_trace_block(uint32_t cur_loc) {
 //   register uintptr_t afl_idx = cur_loc;
 //   INC_AFL_AREA(afl_idx);
     buzzer->shmem_trace[cur_loc] += 1;
-    if (unlikely(buzzer->shmem_trace[cur_loc] == 0)) {
+    if (buzzer->shmem_trace[cur_loc] == 0) {
         buzzer->shmem_trace[cur_loc] = 255;
     }
 }
 
-/* Generates TCG code for AFL's tracing instrumentation. */
-static void afl_gen_trace(target_ulong cur_loc) {
-
-    // cur_loc = (cur_loc >> 4) ^ (cur_loc << 8);
-    // cur_loc &= MAP_SIZE - 1;
-
-    cur_loc = (uintptr_t)(afl_hash_ip((uint64_t)cur_loc));
-    cur_loc &= (MAP_SIZE - 1);
-
-    TCGv cur_loc_v = tcg_const_tl(GPOINTER_TO_UINT(cur_loc));
-    gen_helper_afl_maybe_log(cur_loc_v);
-    tcg_temp_free(cur_loc_v);
+static inline intptr_t insert_tcg_tmp(TCGOp **after_op, uint32_t value) {
+    TCGv_i64 tmp = tcg_temp_new_i64();
+    *after_op = tcg_op_insert_after(&tcg_ctx, *after_op, INDEX_op_movi_i64, 2);
+    TCGArg *store_args = &tcg_ctx.gen_opparam_buf[(*after_op)->args];
+    store_args[0] = GET_TCGV_I64(tmp);
+    store_args[1] = (TCGArg)value;
+    return GET_TCGV_I64(tmp);
 }
+
+
+static inline void instrument(TCGOp **after_op, uint32_t value) {
+    // Insert all arguments as TCG temporaries.
+    intptr_t arg = insert_tcg_tmp(after_op, value);
+
+    *after_op = tcg_op_insert_after(&tcg_ctx, *after_op, INDEX_op_call, 3);
+
+    // Populate call op parameters.
+    (*after_op)->callo = 0; // no return value
+    (*after_op)->calli = 1;
+    TCGArg *call_args = &tcg_ctx.gen_opparam_buf[(*after_op)->args];
+    call_args[0] = arg;
+    call_args[1] = (TCGArg)buzzer_trace_block;
+    call_args[2] = 0;
+}
+
+
+static inline void buzzer_instrument(target_ulong addr) {
+
+    uint32_t value = shm_hash_map_lookup(buzzer->bb_map, addr);
+
+    if (!value) {
+        value = shm_hash_map_insert(buzzer->bb_map, addr);
+    }
+
+    TCGOp *op = NULL;
+    TCGOp *after_op = NULL; 
+    for (int oi = tcg_ctx.gen_op_buf[0].next; oi != 0; oi = op->next) {
+        op = &tcg_ctx.gen_op_buf[oi];
+        if (INDEX_op_insn_start == op->opc) {
+            after_op = op;
+            break;
+        }
+    }
+
+    // OKF("%u", value);
+
+    // TCGv_i32 cur_loc_v = tcg_const_i32(value);
+    // gen_helper_buzzer_trace_block(cur_loc_v);
+    // tcg_temp_free_i32(cur_loc_v);
+
+    instrument(&after_op, value);
+}
+
+// /* Generates TCG code for AFL's tracing instrumentation. */
+// static void buzzer_trace_block(target_ulong cur_loc) {
+
+//     // cur_loc = (cur_loc >> 4) ^ (cur_loc << 8);
+//     // cur_loc &= MAP_SIZE - 1;
+
+//     cur_loc = (uintptr_t)(afl_hash_ip((uint64_t)cur_loc));
+//     cur_loc &= (MAP_SIZE - 1);
+
+//     TCGv cur_loc_v = tcg_const_tl(GPOINTER_TO_UINT(cur_loc));
+//     gen_helper_buzzer_trace_block(cur_loc_v);
+//     tcg_temp_free(cur_loc_v);
+// }
 
 static void page_table_config_init(void) {
     uint32_t v_l1_bits;
@@ -1387,11 +1441,6 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
     tcg_func_start(&tcg_ctx);
 
     tcg_ctx.cpu = ENV_GET_CPU(env);
-    if (likely(buzzer && buzzer->current_task == TASK_FUZZ)) {
-        tb_page_addr_t phy_addr;
-        phy_addr = get_page_addr_code((CPUArchState *)cpu->env_ptr, pc);
-        afl_gen_trace(phy_addr);
-    }
     gen_intermediate_code(env, tb);
     tcg_ctx.cpu = NULL;
 
@@ -1422,6 +1471,7 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
        re-initialize it per above, and re-do the actual code generation.  */
     panda_callbacks_before_tcg_codegen(first_cpu, tb);
     panda_install_block_callbacks(first_cpu, tb);
+    buzzer_instrument(pc);
 
     gen_code_size = tcg_gen_code(&tcg_ctx, tb);
 

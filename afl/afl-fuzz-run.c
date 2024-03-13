@@ -218,7 +218,7 @@ write_to_testcase(afl_state_t *afl, void **mem, u32 len, u32 fix) {
 
 u8 calibrate_case(afl_state_t *afl, struct queue_entry *q, u32 handicap) {
 
-  q->bitmap_size = count_bytes(afl, afl->fsrv.trace_bits);
+  q->bitmap_size = count_bytes(afl, afl->fsrv.trace_bits_mother);
   q->handicap = handicap;
   q->cal_failed = 0;
 
