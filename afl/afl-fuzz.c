@@ -133,7 +133,6 @@ void afl_run(pid_t pid) {
   afl->start_time = get_cur_time();
   afl->stage_name = "IutReset";
   afl->stage_short = "IutReset";
-  afl->fsrv.trace_bits = afl->fsrv.trace_bits_mother;
   queue_entry_append_message_recv(afl, afl->queue_tmp);
   common_fuzz_stuff(afl, afl->queue_tmp, FSRV_RUN_OK);
   // memset(afl->virgin_bits, 255, afl->fsrv.map_size);

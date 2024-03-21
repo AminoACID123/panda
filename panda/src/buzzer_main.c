@@ -67,8 +67,8 @@ void buzzer_on_serial_recv(uint8_t* buf, uint32_t size) {
 }
 
 void buzzer_on_recv_complete(void* opaque) {
-    send_stat(STAT_RUN_OK);
     timer_del(recv_complete_timer);
+    send_stat(STAT_RUN_OK);
 }
 
 static void on_ctrl_recv(void* opaque) {
@@ -106,6 +106,12 @@ void buzzer_callback_after_machine_init(void) {
     qemu_set_fd_handler(CTRL_READ_FD, on_ctrl_recv, NULL, NULL);
     recv_timeout_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL, on_timeout, NULL);
     recv_complete_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, buzzer_on_recv_complete, NULL);
+}
+
+void buzzer_reset(void) {
+    timer_del(recv_timeout_timer);
+    timer_del(recv_complete_timer);
+    char_buzzer_reset();
 }
 
 void buzzer_replay_pklg(char* path) {
@@ -192,7 +198,7 @@ int buzzer_main(int argc, char **argv, char **envp) {
         buzzer->shmem_trace_child = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
         buzzer->shmem_trace_mother = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
         buzzer->shmem_trace_root = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-        buzzer->shmem_trace = buzzer->shmem_trace_mother;
+        buzzer->shmem_trace = buzzer->shmem_trace_root;
         buzzer->in_buzzer_mode = true;
         launch_children();
     } 

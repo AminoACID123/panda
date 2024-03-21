@@ -52,3 +52,12 @@ uint32_t shm_hash_map_lookup(void *opaque, uint64_t key) {
     return 0;
   return it->second;
 }
+
+uint64_t shm_hash_map_lookup_value(void* opaque, uint32_t value) {
+  ShmMap *shm_map = static_cast<ShmMap *>(opaque);
+  for (auto& item : *shm_map) {
+    if (item.second == value)
+        return item.first;
+  }
+  return 0;
+}

@@ -45,6 +45,8 @@ unsigned long rcu_gp_ctr = RCU_GP_LOCKED;
 QemuEvent rcu_gp_event;
 static QemuMutex rcu_registry_lock;
 static QemuMutex rcu_sync_lock;
+static QemuThread thread;
+
 
 /*
  * Check whether a quiescent state was crossed between the beginning of
@@ -301,8 +303,6 @@ void rcu_unregister_thread(void)
 
 static void rcu_init_complete(void)
 {
-    QemuThread thread;
-
     qemu_mutex_init(&rcu_registry_lock);
     qemu_mutex_init(&rcu_sync_lock);
     qemu_event_init(&rcu_gp_event, true);
@@ -344,4 +344,8 @@ static void __attribute__((__constructor__)) rcu_init(void)
     pthread_atfork(rcu_init_lock, rcu_init_unlock, rcu_init_unlock);
 #endif
     rcu_init_complete();
+}
+
+bool qemu_in_rcu_thread() {
+    qemu_thread_is_self(&thread);
 }

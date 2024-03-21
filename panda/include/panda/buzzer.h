@@ -124,10 +124,13 @@ void char_buzzer_send_packet(uint8_t *data, int len);
 void char_buzzer_send_packet_v(const struct iovec *iov, int iovcnt);
 void buzzer_callback_after_machine_init(void);
 
+void buzzer_reset(void);
+
 void *shm_hash_map_new(size_t n);
 void shm_hash_map_reserve(void *opaque, size_t n);
 uint32_t shm_hash_map_insert(void *opaque, uint64_t key);
-uint32_t shm_hash_map_lookup(void *table, uint64_t key);
+uint32_t shm_hash_map_lookup(void *opaque, uint64_t key);
+uint64_t shm_hash_map_lookup_value(void* opaque, uint32_t value);
 
 #define send_ctrl(_ctrl)                                                       \
   do {                                                                         \
@@ -158,8 +161,15 @@ uint32_t shm_hash_map_lookup(void *table, uint64_t key);
 #define ck_recv_stat(_stat)                                                    \
   do {                                                                         \
     int __stat = recv_stat();                                                  \
-    if (__stat != _stat)                                                       \
+    if (unlikely(__stat != _stat))                                             \
       FATAL("Wrong status: %d, expected %d", __stat, _stat);                   \
+  } while (0);
+
+#define ck_recv_stat2(_stat1, _stat2)                                          \
+  do {                                                                         \
+    int __stat = recv_stat();                                                  \
+    if (unlikely(__stat != _stat1 && __stat != _stat2))                        \
+      FATAL("Wrong status: %d, expected %d or %d", __stat, _stat1, _stat2);    \
   } while (0);
 
 #define send_ctrl_step_one()                                                   \

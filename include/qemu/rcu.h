@@ -106,6 +106,7 @@ extern void synchronize_rcu(void);
 extern void rcu_register_thread(void);
 extern void rcu_unregister_thread(void);
 extern void rcu_after_fork(void);
+extern bool qemu_in_rcu_thread(void);
 
 struct rcu_head;
 typedef void RCUCBFunc(struct rcu_head *head);

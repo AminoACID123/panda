@@ -160,6 +160,9 @@ iut_init_stage:
         } else if (unlikely(status == STAT_RUN_CRASH)) {
           fault = FSRV_RUN_CRASH;
           break;
+
+        } else if (unlikely(status != STAT_RUN_OK)){
+          FATAL("%d", status);
         }
 
       } else {
@@ -189,7 +192,8 @@ evt_enum_stage:
 
   {
     queue_entry_clear_messages(q);
-    APPEND_EVENT_COMMON(q, 0x07, u8, 255, 1);
+    memcpy(afl->fsrv.trace_bits, afl->fsrv.trace_bits_mother, afl->fsrv.map_size);
+    APPEND_EVENT_COMMON(q, 0xEF, u8, 255, 1);
     afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
     emit_message(afl, &afl->bt_state, q, 0);
     status = recv_stat();
@@ -200,6 +204,7 @@ evt_enum_stage:
 
   {
     queue_entry_clear_messages(q);
+    memcpy(afl->fsrv.trace_bits, afl->fsrv.trace_bits_mother, afl->fsrv.map_size);
     APPEND_EVENT_COMMON(q, 0xEF, u8, 10, 1);
     afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
     emit_message(afl, &afl->bt_state, q, 0);
@@ -211,6 +216,7 @@ evt_enum_stage:
 
   {
     queue_entry_clear_messages(q);
+    memcpy(afl->fsrv.trace_bits, afl->fsrv.trace_bits_mother, afl->fsrv.map_size);
     APPEND_LE_EVENT_COMMON(q, 0xEF, u8, 10, 1);
     afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
     emit_message(afl, &afl->bt_state, q, 0);

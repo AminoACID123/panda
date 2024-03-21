@@ -34,6 +34,8 @@
 #include "block/aio.h"
 #include "panda/rr/rr_log_all.h"
 
+#include "afl/debug.h"
+
 #ifndef _WIN32
 
 /* If we have signalfd, we mask out the signals we want to handle and then

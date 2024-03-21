@@ -72,8 +72,9 @@ void qemu_mutex_unlock(QemuMutex *mutex)
     int err;
 
     err = pthread_mutex_unlock(&mutex->lock);
-    if (err)
+    if (err){
         error_exit(err, __func__);
+    }
 }
 
 void qemu_rec_mutex_init(QemuRecMutex *mutex)

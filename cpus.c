@@ -1266,8 +1266,6 @@ static void deal_with_unplugged_cpus(void)
 //     }
 // }
 
-void buzzer_forkserver(void* opaque);
-
 void prepare_record(void) {
     set_rr_snapshot();
     remove(BZ_REPLAY_LOG);
@@ -1289,6 +1287,8 @@ void prepare_replay(void) {
     rr_control.next = RR_NOCHANGE; 
 }
 
+void buzzer_forkserver(void* opaque);
+
 void buzzer_forkserver(void* opaque) {
     int temp;
     send_stat(STAT_FSRV_UP);
@@ -1301,11 +1301,14 @@ void buzzer_forkserver(void* opaque) {
             exit(0);
 
         } else {
+
+            // rcu_reinit();
+
             pid_t pid = fork();
 
             if (!pid) {
-                tcg_cpu_thread = NULL;
-                first_cpu = restart_cpu;
+
+                rcu_after_fork();
 
                 if (temp == CTRL_START_RECORD) {
                     prepare_record();
@@ -1319,8 +1322,20 @@ void buzzer_forkserver(void* opaque) {
                     buzzer->current_task = TASK_EXTRACT_LE_EVENTS;
                 }
 
+                tcg_cpu_thread = NULL;
+                tcg_current_rr_cpu = NULL;
+                first_cpu = restart_cpu;
+                first_cpu->created = false;
+                first_cpu->stopped = true;
+
+                buzzer_reset();
+                
+                qemu_cond_init(&qemu_cpu_cond);
+                qemu_cond_init(&qemu_pause_cond);
+                qemu_cond_init(&qemu_io_proceeded_cond);
                 cpu_enable_ticks();
                 qemu_tcg_init_vcpu(restart_cpu);
+                resume_all_vcpus();
                 send_stat(getpid());
                 return;
             }
@@ -1435,6 +1450,7 @@ static void *qemu_tcg_cpu_thread_fn(void *arg)
 
     if (buzzer->stop_cpu) {
         buzzer->stop_cpu = false;
+        rcu_unregister_thread();
         cpu_disable_ticks();
         aio_bh_schedule_oneshot(qemu_get_aio_context(), buzzer_forkserver, NULL);
         restart_cpu = first_cpu;

@@ -219,6 +219,10 @@ static inline void buzzer_instrument(target_ulong addr) {
         value = shm_hash_map_insert(buzzer->bb_map, addr);
     }
 
+    buzzer->shmem_trace[value & 0xFFFFF] += 1;
+    return;
+
+
     TCGOp *op = NULL;
     TCGOp *after_op = NULL; 
     for (int oi = tcg_ctx.gen_op_buf[0].next; oi != 0; oi = op->next) {

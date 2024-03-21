@@ -264,6 +264,18 @@ bool qemu_mutex_iothread_locked(void);
  */
 void qemu_mutex_lock_iothread(void);
 
+/*
+#define qemu_mutex_lock_iothread()                              \
+    {                                                           \
+        printf("lock iothread: %lu %s:%d\n",                    \
+            gettid(),  __FILE__, __LINE__);                     \
+        qemu_mutex_lock_iothread_impl();                        \
+        printf("locked\n");                                     \
+    }
+*/
+
+
+
 /**
  * qemu_mutex_unlock_iothread: Unlock the main loop mutex.
  *
@@ -278,6 +290,16 @@ void qemu_mutex_lock_iothread(void);
  * is a no-op there.
  */
 void qemu_mutex_unlock_iothread(void);
+
+/*
+#define qemu_mutex_unlock_iothread()                            \
+    {                                                           \
+        printf("unlock iothread: %lu %s:%d\n",                  \
+            gettid(), __FILE__, __LINE__);                      \
+        qemu_mutex_unlock_iothread_impl();                      \
+        printf("unlocked\n");                                   \
+    }
+*/
 
 /* internal interfaces */
 

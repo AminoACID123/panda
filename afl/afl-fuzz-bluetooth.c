@@ -1191,7 +1191,7 @@ u8 perform_dry_run(afl_state_t *afl, struct queue_entry *q) {
   bt_state_t* bt = &afl->bt_state;
 
   afl->fsrv.trace_bits = buzzer->shmem_trace = buzzer->shmem_trace_mother;
-  memset(afl->fsrv.trace_bits, 0, afl->fsrv.map_size);
+  memcpy(afl->fsrv.trace_bits, buzzer->shmem_trace_root, afl->fsrv.map_size);
 
   bt_state_reset(&q->bt_state);
 
@@ -1200,15 +1200,14 @@ u8 perform_dry_run(afl_state_t *afl, struct queue_entry *q) {
   for (int i = 0; i < q->message_cnt; ++i) {
     message = q->messages[i];
     if (message->type == FUZZ_SEND) {
-      qemu_hexdump(message, stdout, "fuzz send",
-                    message->size + sizeof(*message));
+      // qemu_hexdump(message, stdout, "fuzz send",
+      //               message->size + sizeof(*message));
       memcpy(afl->fsrv.shmem_fuzz, message, message->size + sizeof(*message));
       send_ctrl_step_one();
-      stat = recv_stat();
+      ck_recv_stat2(STAT_RUN_OK, STAT_RUN_TMOUT);
       message = (message_t*)afl->fsrv.shmem_fuzz;
-      qemu_hexdump(message, stdout, "fuzz recv",
-                    message->size + sizeof(*message));
-      OKF("%d", stat);
+      // qemu_hexdump(message, stdout, "fuzz recv",
+      //               message->size + sizeof(*message));
     }
     message = q->messages[i];
     bt_state_update(&q->bt_state, message);

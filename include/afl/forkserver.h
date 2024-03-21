@@ -40,6 +40,7 @@ typedef struct afl_forkserver {
   u8 *trace_bits;                       /* SHM with instrumentation bitmap  */
   u8* trace_bits_child;
   u8* trace_bits_mother;
+  u8* trace_bits_root;
 
   s32 fsrv_pid,                         /* PID of the fork server           */
       child_pid,                        /* PID of the fuzzed program        */
@@ -127,8 +128,6 @@ typedef struct afl_forkserver {
   pid_t children[MAX_CHILDREN];
   int child_cur;
 
-  u8 incremental_trace_bits;
-
 } afl_forkserver_t;
 
 typedef enum fsrv_run_result {
@@ -154,6 +153,24 @@ pid_t afl_fsrv_pop_child(afl_forkserver_t* fsrv, pid_t pid);
 void              afl_fsrv_killall(void);
 void              afl_fsrv_deinit(afl_forkserver_t *fsrv);
 void              afl_fsrv_kill(afl_forkserver_t *fsrv);
+
+
+#define afl_fsrv_push_child(_fsrv, _child)                                      \
+  ({                                                                          \
+    pid_t __child = _child;     \
+    (_fsrv)->children[++((_fsrv)->child_cur)] = __child;                           \
+    __child;      \
+  })                       
+
+
+#define afl_fsrv_pop_child(_fsrv, _child)                                     \
+  ({                                                                          \
+    pid_t __child = _child;   \
+    pid_t _expected_pid = (_fsrv)->children[((_fsrv)->child_cur--)];            \
+    if (unlikely(_expected_pid != __child))                                   \
+      FATAL("Wrong child pid: recv %d, expect %d", __child, _expected_pid);    \
+    __child;\
+  }) 
 
 #endif
 

@@ -145,14 +145,12 @@ void buzzer_register_packet_handler(PacketHandler* handler)
 // }
 
 void char_buzzer_reset(void) {
-    if (buzzer_char) {
-        uint64_t temp;
-        buzzer_char->rx_work.pos = buzzer_char->rx_work.len = 0;
-        buzzer_char->tx_cur = buzzer_char->tx_end = 0;
-        read(buzzer_char->efd, &temp, sizeof(temp));
-        timer_del(buzzer_char->send_timer);
-        timer_del(buzzer_char->recv_timer);
-    }
+    uint64_t temp;
+    buzzer_char->rx_work.pos = buzzer_char->rx_work.len = 0;
+    buzzer_char->tx_cur = buzzer_char->tx_end = 0;
+    read(buzzer_char->efd, &temp, sizeof(temp));
+    timer_del(buzzer_char->send_timer);
+    timer_del(buzzer_char->recv_timer);
 }
 
 /*

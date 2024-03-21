@@ -28,6 +28,8 @@
                 "out",
                 "-replay_path",
                 "out/queue_pklg/id:000002,src:000000,time:1193,execs:3,op:IutInit,pos:0,+cov"
+                // "-display",
+                // "none"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/x86_64-softmmu",
@@ -44,11 +46,11 @@
                     "text": "-gdb-set disassembly-flavor intel",
                     "ignoreFailures": true
                 },
-                // {
-                //     "description": "Set Disassembly Flavor to Intel",
-                //     "text": "-gdb-set follow-fork-mode child",
-                //     "ignoreFailures": true
-                // }
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set follow-fork-mode child",
+                    "ignoreFailures": true
+                }
             ],
             "miDebuggerPath": "/usr/bin/gdb"
         }
