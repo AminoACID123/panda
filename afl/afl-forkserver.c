@@ -109,9 +109,7 @@ void afl_fsrv_init(afl_forkserver_t *fsrv) {
   fsrv->trace_bits_child = buzzer->shmem_trace_child;
   fsrv->trace_bits_mother = buzzer->shmem_trace_mother;
   fsrv->trace_bits_root = buzzer->shmem_trace_root;
-  fsrv->trace_bits = buzzer->shmem_trace_root;
-
-  fsrv->shmem_fuzz = buzzer->shmem_message;
+  fsrv->trace_bits = buzzer->shmem_trace = buzzer->shmem_trace_root;
 
   fsrv->init_child_func = fsrv_exec_child;
   list_append(&fsrv_list, fsrv);
@@ -419,3 +417,16 @@ void afl_fsrv_kill(afl_forkserver_t *fsrv) {
   }
 }
 
+pid_t afl_fsrv_push_child(afl_forkserver_t* fsrv, pid_t child)              
+{                                                                          
+  fsrv->children[++(fsrv->child_cur)] = child;                           
+  return child;     
+}                      
+
+pid_t afl_fsrv_pop_child(afl_forkserver_t* fsrv, pid_t child)    
+{                                                                          
+  pid_t expected_pid = fsrv->children[(fsrv->child_cur--)];            
+  if (unlikely(expected_pid != child))                                   
+    FATAL("Wrong child pid: recv %d, expect %d", child, expected_pid);    
+  return child;
+}

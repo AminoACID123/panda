@@ -805,7 +805,8 @@ static inline int64_t qemu_tcg_next_kick(void)
 }
 
 /* Kick the currently round-robin scheduled vCPU */
-static void qemu_cpu_kick_rr_cpu(void)
+// static void qemu_cpu_kick_rr_cpu(void)
+static void qemu_cpu_kick_rr_next_cpu(void)
 {
     CPUState *cpu;
     do {
@@ -816,6 +817,13 @@ static void qemu_cpu_kick_rr_cpu(void)
     } while (cpu != atomic_mb_read(&tcg_current_rr_cpu));
 }
 
+static void qemu_cpu_kick_rr_cpus(void) {
+    CPUState* cpu;
+    CPU_FOREACH(cpu) {
+        cpu_exit(cpu);
+    }
+}
+
 void qemu_timer_notify_cb(void *opaque, QEMUClockType type)
 {
     qemu_notify_event();
@@ -824,7 +832,8 @@ void qemu_timer_notify_cb(void *opaque, QEMUClockType type)
 static void kick_tcg_thread(void *opaque)
 {
     timer_mod(tcg_kick_vcpu_timer, qemu_tcg_next_kick());
-    qemu_cpu_kick_rr_cpu();
+    // qemu_cpu_kick_rr_cpu();
+    qemu_cpu_kick_rr_next_cpu();
 }
 
 static void start_tcg_kick_timer(void)
@@ -1324,18 +1333,14 @@ void buzzer_forkserver(void* opaque) {
 
                 tcg_cpu_thread = NULL;
                 tcg_current_rr_cpu = NULL;
-                first_cpu = restart_cpu;
-                first_cpu->created = false;
-                first_cpu->stopped = true;
 
-                buzzer_reset();
-                
-                qemu_cond_init(&qemu_cpu_cond);
-                qemu_cond_init(&qemu_pause_cond);
-                qemu_cond_init(&qemu_io_proceeded_cond);
+                // buzzer_reset();
+                host_recv(buzzer->mbuf, 0);
+                // qemu_cond_init(&qemu_cpu_cond);
+                // qemu_cond_init(&qemu_pause_cond);
+                // qemu_cond_init(&qemu_io_proceeded_cond);
                 cpu_enable_ticks();
                 qemu_tcg_init_vcpu(restart_cpu);
-                resume_all_vcpus();
                 send_stat(getpid());
                 return;
             }
@@ -1454,7 +1459,7 @@ static void *qemu_tcg_cpu_thread_fn(void *arg)
         cpu_disable_ticks();
         aio_bh_schedule_oneshot(qemu_get_aio_context(), buzzer_forkserver, NULL);
         restart_cpu = first_cpu;
-        first_cpu = NULL;
+        // first_cpu = NULL;
         qemu_mutex_unlock_iothread();
     }
 
@@ -1533,9 +1538,11 @@ void qemu_cpu_kick(CPUState *cpu)
 {
     qemu_cond_broadcast(cpu->halt_cond);
     if (tcg_enabled()) {
-        cpu_exit(cpu);
+        // cpu_exit(cpu);
         /* Also ensure current RR cpu is kicked */
-        qemu_cpu_kick_rr_cpu();
+        // qemu_cpu_kick_rr_cpu();
+        qemu_cpu_kick_rr_cpus();
+
     } else {
         if (hax_enabled()) {
             /*
@@ -1583,7 +1590,7 @@ void qemu_mutex_lock_iothread(void)
         atomic_dec(&iothread_requesting_mutex);
     } else {
         if (qemu_mutex_trylock(&qemu_global_mutex)) {
-            qemu_cpu_kick_rr_cpu();
+            qemu_cpu_kick_rr_cpus();
             qemu_mutex_lock(&qemu_global_mutex);
         }
         atomic_dec(&iothread_requesting_mutex);
@@ -1685,9 +1692,9 @@ void qemu_tcg_init_vcpu(CPUState *cpu)
         cpu->halt_cond = g_malloc0(sizeof(QemuCond));
         qemu_cond_init(cpu->halt_cond);
         tcg_halt_cond = cpu->halt_cond;
-        snprintf(thread_name, VCPU_THREAD_NAME_SIZE, "CPU %d/TCG",
-                 cpu->cpu_index);
-        qemu_thread_create(cpu->thread, thread_name, qemu_tcg_cpu_thread_fn,
+        // snprintf(thread_name, VCPU_THREAD_NAME_SIZE, "CPU %d/TCG",
+        //          cpu->cpu_index);
+        qemu_thread_create(cpu->thread, "cpu", qemu_tcg_cpu_thread_fn,
                            cpu, QEMU_THREAD_JOINABLE);
 #ifdef _WIN32
         cpu->hThread = qemu_thread_get_handle(cpu->thread);

@@ -10,6 +10,7 @@ extern "C" {
 #include "panda/kernelinfo.h"
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <sys/types.h>
 
 #define BZ_TMOUT_MS 100
@@ -17,6 +18,12 @@ extern "C" {
 #define BZ_MSG_SIZE (1 << 16)
 #define BZ_TRACE_SIZE (1 << 20)
 #define BZ_REPLAY_LOG "/tmp/buzzer-log"
+#define BZ_SOCKET "/tmp/buzzer.sock"
+
+#define BZ_ACL_MTU      1024
+#define BZ_SCO_MTU      255
+#define BZ_ACL_MAX_PKT  5
+#define BZ_SCO_MAX_PKT  5
 
 #define CTRL_WRITE_FD 190
 #define CTRL_READ_FD 191
@@ -40,12 +47,12 @@ enum {
 
 enum {
   STAT_FSRV_UP = 0, // Forkserver is up
-  STAT_CHILD_EXIT,  // A session completed (child exited)
-  STAT_STEP_ONE,    // A single message has been received and processed
-  STAT_RUN_ERROR,   // Something is wrong with fuzz execution
-  STAT_RUN_CRASH,   // The input message results in a crash
-  STAT_RUN_TMOUT,   // The input message results in a timeout
-  STAT_RUN_OK       // A reply message has been received
+  // STAT_CHILD_EXIT,  // A session completed (child exited)
+  // STAT_STEP_ONE,    // A single message has been received and processed
+  // STAT_RUN_ERROR,   // Something is wrong with fuzz execution
+  // STAT_RUN_CRASH,   // The input message results in a crash
+  // STAT_RUN_TMOUT,   // The input message results in a timeout
+  // STAT_RUN_OK       // A reply message has been received
 };
 
 enum {
@@ -81,6 +88,7 @@ typedef struct __packed {
 } AnalyzeResult;
 
 #define BZ_PATH_MAX 512
+#define BZ_BUF_MAX 65536
 typedef struct buzzer_state {
   /* Fuzzer setup*/
   bool disable_le, disable_bredr;
@@ -94,6 +102,10 @@ typedef struct buzzer_state {
   int device_no;
 
   /* Runtime */
+  int sock_host;
+  int sock_controller;
+  uint32_t exec_fail_sig;
+  struct timeval tmout;
   bool stop_cpu;
   bool in_buzzer_mode;
   bool update_bb_map;
@@ -103,14 +115,15 @@ typedef struct buzzer_state {
   uint32_t char_transmit_time;
   uint8_t current_task;
   uint8_t target_type;
-  uint8_t *shmem_message;
+  uint8_t *mbuf;
+  int mbuf_len;
   uint8_t *shmem_trace;
   uint8_t *shmem_trace_child;
   uint8_t *shmem_trace_mother;
   uint8_t *shmem_trace_root;
 
   void* bb_map;
-
+  
 } buzzer_state_t;
 
 extern buzzer_state_t *buzzer;
@@ -125,6 +138,13 @@ void char_buzzer_send_packet_v(const struct iovec *iov, int iovcnt);
 void buzzer_callback_after_machine_init(void);
 
 void buzzer_reset(void);
+
+void controller_send(uint8_t* buf, int len);
+void controller_send_iov(struct iovec* iov, int cnt);
+int controller_recv_default(void);
+int controller_recv(uint8_t* buf, int tmout_ms);
+void host_send(uint8_t* buf, int len);
+int host_recv(uint8_t* buf, int tmout_ms);
 
 void *shm_hash_map_new(size_t n);
 void shm_hash_map_reserve(void *opaque, size_t n);
@@ -175,16 +195,14 @@ uint64_t shm_hash_map_lookup_value(void* opaque, uint32_t value);
 #define send_ctrl_step_one()                                                   \
   do {                                                                         \
     send_ctrl(CTRL_STEP_ONE);                                                  \
-    recv_stat();                                                               \
+    ck_recv_stat(STAT_STEP_ONE);                                               \
   } while (0);
 
 #define send_ctrl_create_fsrv()                                                \
-  ({                                                                           \
-    int _tmp;                                                                  \
+  do {                                                                         \
     send_ctrl(CTRL_CREATE_FSRV);                                               \
-    _tmp = recv_stat();                                                        \
-    _tmp;                                                                      \
-  })
+    ck_recv_stat(STAT_FSRV_UP);                                                \
+  } while (0);
 
 #define send_ctrl_exit_fsrv()                                                  \
   ({                                                                           \

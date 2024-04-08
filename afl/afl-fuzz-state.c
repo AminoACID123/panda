@@ -179,6 +179,9 @@ void afl_states_stop(void) {
   /* We may be inside a signal handler.
    Set flags first, send kill signals to child proceses later. */
   LIST_FOREACH(&afl_states, afl_state_t, {
+
+    // queue_entry_save(el->queue_tmp, "rr_log");
+
     el->stop_soon = 1;
     el->force_ui_update = 1;  // ensure the screen is reprinted
     el->stop_soon = 1;        // ensure everything is written

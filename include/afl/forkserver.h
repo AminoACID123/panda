@@ -100,7 +100,8 @@ typedef struct afl_forkserver {
 
   u32 *shmem_fuzz_len;                  /* length of the fuzzing test case  */
 
-  u8 *shmem_fuzz;                       /* allocated memory for fuzzing     */
+  u8 *shmem_fuzz_send;
+  u8 *shmem_fuzz_recv;
 
   char *cmplog_binary;                  /* the name of the cmplog binary    */
 
@@ -153,24 +154,6 @@ pid_t afl_fsrv_pop_child(afl_forkserver_t* fsrv, pid_t pid);
 void              afl_fsrv_killall(void);
 void              afl_fsrv_deinit(afl_forkserver_t *fsrv);
 void              afl_fsrv_kill(afl_forkserver_t *fsrv);
-
-
-#define afl_fsrv_push_child(_fsrv, _child)                                      \
-  ({                                                                          \
-    pid_t __child = _child;     \
-    (_fsrv)->children[++((_fsrv)->child_cur)] = __child;                           \
-    __child;      \
-  })                       
-
-
-#define afl_fsrv_pop_child(_fsrv, _child)                                     \
-  ({                                                                          \
-    pid_t __child = _child;   \
-    pid_t _expected_pid = (_fsrv)->children[((_fsrv)->child_cur--)];            \
-    if (unlikely(_expected_pid != __child))                                   \
-      FATAL("Wrong child pid: recv %d, expect %d", __child, _expected_pid);    \
-    __child;\
-  }) 
 
 #endif
 

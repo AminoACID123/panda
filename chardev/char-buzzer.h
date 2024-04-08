@@ -26,6 +26,10 @@ typedef struct BuzzerChardev{
     uint8_t tx_cur, tx_end;
     QEMUTimer* recv_timer;
     QEMUTimer* send_timer;
+    uint8_t host_buf[65536];
+    int host_len;
+    int packet_len;
+    bool cal_packet_len;
     QEMUBH* bh;
 } BuzzerChardev;
 

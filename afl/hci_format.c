@@ -2,15 +2,216 @@
 #include "afl/debug.h"
 #include "bluetooth/bluetooth.h"
 
-GArray *    hci_cmds;
-GArray *    hci_evts;
-GArray *    hci_le_evts;
-GArray *    hci_iut_evts;
-GArray *    hci_iut_le_evts;
+GArray     *hci_cmds;
+GArray     *hci_evts;
+GArray     *hci_le_evts;
+GArray     *hci_iut_evts;
+GArray     *hci_iut_le_evts;
 GHashTable *hci_cmd_map;
 GHashTable *hci_evt_map;
 GHashTable *hci_le_evt_map;
 GHashTable *hci_rsp_map;
+GHashTable *hci_event_mask_map;
+GHashTable *hci_event_mask_page2_map;
+GHashTable *hci_le_event_mask_map;
+
+u8 event_mask[] = {
+    /* 00 */ BT_HCI_EVT_INQUIRY_COMPLETE,
+    /* 01 */ BT_HCI_EVT_INQUIRY_RESULT,
+    /* 02 */ BT_HCI_EVT_CONN_COMPLETE,
+    /* 03 */ BT_HCI_EVT_CONN_REQUEST,
+    /* 04 */ BT_HCI_EVT_DISCONNECT_COMPLETE,
+    /* 05 */ BT_HCI_EVT_AUTH_COMPLETE,
+    /* 06 */ BT_HCI_EVT_REMOTE_NAME_REQUEST_COMPLETE,
+    /* 07 */ BT_HCI_EVT_ENCRYPT_CHANGE,
+
+    /* 08 */ BT_HCI_EVT_CHANGE_CONN_LINK_KEY_COMPLETE,
+    /* 09 */ BT_HCI_EVT_LINK_KEY_TYPE_CHANGED,
+    /* 10 */ BT_HCI_EVT_REMOTE_FEATURES_COMPLETE,
+    /* 11 */ BT_HCI_EVT_REMOTE_VERSION_COMPLETE,
+    /* 12 */ BT_HCI_EVT_QOS_SETUP_COMPLETE,
+    /* 13 */ 0,
+    /* 14 */ 0,
+    /* 15 */ BT_HCI_EVT_HARDWARE_ERROR,
+
+    /* 16 */ BT_HCI_EVT_FLUSH_OCCURRED,
+    /* 17 */ BT_HCI_EVT_ROLE_CHANGE,
+    /* 18 */ 0,
+    /* 19 */ BT_HCI_EVT_MODE_CHANGE,
+    /* 20 */ BT_HCI_EVT_RETURN_LINK_KEYS,
+    /* 21 */ BT_HCI_EVT_PIN_CODE_REQUEST,
+    /* 22 */ BT_HCI_EVT_LINK_KEY_REQUEST,
+    /* 23 */ BT_HCI_EVT_LINK_KEY_NOTIFY,
+
+    /* 24 */ BT_HCI_EVT_LOOPBACK_COMMAND,
+    /* 25 */ BT_HCI_EVT_DATA_BUFFER_OVERFLOW,
+    /* 26 */ BT_HCI_EVT_MAX_SLOTS_CHANGE,
+    /* 27 */ BT_HCI_EVT_CLOCK_OFFSET_COMPLETE,
+    /* 28 */ BT_HCI_EVT_CONN_PKT_TYPE_CHANGED,
+    /* 29 */ BT_HCI_EVT_QOS_VIOLATION,
+    /* 30 */ BT_HCI_EVT_PSCAN_MODE_CHANGE,
+    /* 31 */ BT_HCI_EVT_PSCAN_REP_MODE_CHANGE,
+
+    /* 32 */ BT_HCI_EVT_FLOW_SPEC_COMPLETE,
+    /* 33 */ BT_HCI_EVT_INQUIRY_RESULT_WITH_RSSI,
+    /* 34 */ BT_HCI_EVT_REMOTE_EXT_FEATURES_COMPLETE,
+    /* 35 */ 0,
+    /* 36 */ 0,
+    /* 37 */ 0,
+    /* 38 */ 0,
+    /* 39 */ 0,
+
+    /* 40 */ 0,
+    /* 41 */ 0,
+    /* 42 */ 0,
+    /* 43 */ BT_HCI_EVT_SYNC_CONN_COMPLETE,
+    /* 44 */ BT_HCI_EVT_SYNC_CONN_CHANGED,
+    /* 45 */ BT_HCI_EVT_SNIFF_SUBRATING,
+    /* 46 */ BT_HCI_EVT_EXT_INQUIRY_RESULT,
+    /* 47 */ BT_HCI_EVT_ENCRYPT_KEY_REFRESH_COMPLETE,
+
+    /* 48 */ BT_HCI_EVT_IO_CAPABILITY_REQUEST,
+    /* 49 */ BT_HCI_EVT_IO_CAPABILITY_RESPONSE,
+    /* 50 */ BT_HCI_EVT_USER_CONFIRM_REQUEST,
+    /* 51 */ BT_HCI_EVT_USER_PASSKEY_REQUEST,
+    /* 52 */ BT_HCI_EVT_REMOTE_OOB_DATA_REQUEST,
+    /* 53 */ BT_HCI_EVT_SIMPLE_PAIRING_COMPLETE,
+    /* 54 */ 0,
+    /* 55 */ BT_HCI_EVT_LINK_SUPV_TIMEOUT_CHANGED,
+
+    /* 56 */ BT_HCI_EVT_ENHANCED_FLUSH_COMPLETE,
+    /* 57 */ 0,
+    /* 58 */ BT_HCI_EVT_USER_PASSKEY_NOTIFY,
+    /* 59 */ BT_HCI_EVT_KEYPRESS_NOTIFY,
+    /* 60 */ BT_HCI_EVT_REMOTE_HOST_FEATURES_NOTIFY,
+    /* 61 */ BT_HCI_EVT_LE_META_EVENT,
+    /* 62 */ 0,
+    /* 63 */ 0};
+
+u8 event_mask_page2[] = {
+    /* 00 */ BT_HCI_EVT_PHY_LINK_COMPLETE,
+    /* 01 */ BT_HCI_EVT_CHANNEL_SELECTED,
+    /* 02 */ BT_HCI_EVT_DISCONN_PHY_LINK_COMPLETE,
+    /* 03 */ BT_HCI_EVT_PHY_LINK_LOSS_EARLY_WARNING,
+    /* 04 */ BT_HCI_EVT_PHY_LINK_RECOVERY,
+    /* 05 */ BT_HCI_EVT_LOGIC_LINK_COMPLETE,
+    /* 06 */ BT_HCI_EVT_DISCONN_LOGIC_LINK_COMPLETE,
+    /* 07 */ BT_HCI_EVT_FLOW_SPEC_MODIFY_COMPLETE,
+
+    /* 08 */ BT_HCI_EVT_NUM_COMPLETED_DATA_BLOCKS,
+    /* 09 */ BT_HCI_EVT_AMP_START_TEST,
+    /* 10 */ BT_HCI_EVT_AMP_TEST_END,
+    /* 11 */ BT_HCI_EVT_AMP_REC_REPORT,
+    /* 12 */ BT_HCI_EVT_SHORT_RANGE_MODE_CHANGE,
+    /* 13 */ BT_HCI_EVT_AMP_STATUS_CHANGE,
+    /* 14 */ BT_HCI_EVT_TRIGGERED_CLOCK_CAPTURE,
+    /* 15 */ BT_HCI_EVT_SYNC_TRAIN_COMPLETE,
+
+    /* 16 */ BT_HCI_EVT_SYNC_TRAIN_RECEIVED,
+    /* 17 */ BT_HCI_EVT_PERIPHERAL_BROADCAST_RECEIVE,
+    /* 18 */ BT_HCI_EVT_PERIPHERAL_BROADCAST_TIMEOUT,
+    /* 19 */ BT_HCI_EVT_TRUNCATED_PAGE_COMPLETE,
+    /* 20 */ BT_HCI_EVT_PERIPHERAL_PAGE_RESPONSE_TIMEOUT,
+    /* 21 */ BT_HCI_EVT_PERIPHERAL_BROADCAST_CHANNEL_MAP_CHANGE,
+    /* 22 */ BT_HCI_EVT_INQUIRY_RESPONSE_NOTIFY,
+    /* 23 */ BT_HCI_EVT_AUTH_PAYLOAD_TIMEOUT_EXPIRED,
+
+    /* 24 */ BT_HCI_EVT_SAM_STATUS_CHANGE,
+    /* 25 */ BT_HCI_EVT_ENCRYPT_CHANGE_V2,
+    /* 26 */ 0,
+    /* 27 */ 0,
+    /* 28 */ 0,
+    /* 29 */ 0,
+    /* 30 */ 0,
+    /* 31 */ 0,
+
+    /* 32 */ 0,
+    /* 33 */ 0,
+    /* 34 */ 0,
+    /* 35 */ 0,
+    /* 36 */ 0,
+    /* 37 */ 0,
+    /* 38 */ 0,
+    /* 39 */ 0,
+
+    /* 40 */ 0,
+    /* 41 */ 0,
+    /* 42 */ 0,
+    /* 43 */ 0,
+    /* 44 */ 0,
+    /* 45 */ 0,
+    /* 46 */ 0,
+    /* 47 */ 0,
+
+    /* 48 */ 0,
+    /* 49 */ 0,
+    /* 50 */ 0,
+    /* 51 */ 0,
+    /* 52 */ 0,
+    /* 53 */ 0,
+    /* 54 */ 0,
+    /* 55 */ 0,
+
+    /* 56 */ 0,
+    /* 57 */ 0,
+    /* 58 */ 0,
+    /* 59 */ 0,
+    /* 60 */ 0,
+    /* 61 */ 0,
+    /* 62 */ 0,
+    /* 63 */ 0};
+
+u8 le_event_mask[] = {
+    /* 00 */ BT_HCI_EVT_LE_CONN_COMPLETE,
+    /* 01 */ BT_HCI_EVT_LE_ADV_REPORT,
+    /* 02 */ BT_HCI_EVT_LE_CONN_UPDATE_COMPLETE,
+    /* 03 */ BT_HCI_EVT_LE_REMOTE_FEATURES_COMPLETE,
+    /* 04 */ BT_HCI_EVT_LE_LONG_TERM_KEY_REQUEST,
+    /* 05 */ BT_HCI_EVT_LE_CONN_PARAM_REQUEST,
+    /* 06 */ BT_HCI_EVT_LE_DATA_LENGTH_CHANGE,
+    /* 07 */ BT_HCI_EVT_LE_READ_LOCAL_PK256_COMPLETE,
+
+    /* 08 */ BT_HCI_EVT_LE_GENERATE_DHKEY_COMPLETE,
+    /* 09 */ BT_HCI_EVT_LE_ENHANCED_CONN_COMPLETE,
+    /* 10 */ BT_HCI_EVT_LE_DIRECT_ADV_REPORT,
+    /* 11 */ BT_HCI_EVT_LE_PHY_UPDATE_COMPLETE,
+    /* 12 */ BT_HCI_EVT_LE_EXT_ADV_REPORT,
+    /* 13 */ BT_HCI_EVT_LE_PA_SYNC_ESTABLISHED,
+    /* 14 */ BT_HCI_EVT_LE_PA_REPORT,
+    /* 15 */ BT_HCI_EVT_LE_PA_SYNC_LOST,
+
+    /* 16 */ BT_HCI_EVT_LE_SCAN_TMOUT,
+    /* 17 */ BT_HCI_EVT_LE_ADV_SET_TERM,
+    /* 18 */ BT_HCI_EVT_LE_SCAN_REQ_RECEIVED,
+    /* 19 */ BT_HCI_EVT_LE_CHAN_SELECT_ALG,
+    /* 20 */ BT_HCI_EVT_LE_CONNLESS_IQ_REPORT,
+    /* 21 */ BT_HCI_EVT_LE_CONN_IQ_REPORT,
+    /* 22 */ BT_HCI_EVT_LE_CTE_REQUEST_FAILED,
+    /* 23 */ BT_HCI_EVT_LE_PA_SYNC_TRANS_REC,
+
+    /* 24 */ BT_HCI_EVT_LE_CIS_ESTABLISHED,
+    /* 25 */ BT_HCI_EVT_LE_CIS_REQ,
+    /* 26 */ BT_HCI_EVT_LE_BIG_COMPLETE,
+    /* 27 */ BT_HCI_EVT_LE_BIG_TERMINATE,
+    /* 28 */ BT_HCI_EVT_LE_BIG_SYNC_ESTABILISHED,
+    /* 29 */ BT_HCI_EVT_LE_BIG_SYNC_LOST,
+    /* 30 */ BT_HCI_EVT_LE_REQ_PEER_SCA_COMPLETE,
+    /* 31 */ BT_HCI_EVT_LE_PATH_LOSS_THRESH,
+
+    /* 32 */ BT_HCI_EVT_LE_TRANSMIT_POWER_REPORT,
+    /* 33 */ BT_HCI_EVT_LE_BIG_INFO_ADV_REPORT,
+    /* 34 */ BT_HCI_EVT_LE_SUBRATE_CHANGE,
+    /* 35 */ BT_HCI_EVT_LE_PA_SYNC_ESTABLISHED_V2,
+    /* 36 */ BT_HCI_EVT_LE_PA_REPORT_V2,
+    /* 37 */ BT_HCI_EVT_LE_PA_SYNC_TRANS_REC_V2,
+    /* 38 */ BT_HCI_EVT_LE_PA_SUBEVENT_REQ,
+    /* 39 */ BT_HCI_EVT_LE_PA_RESP_REPORT,
+
+    /* 40 */ BT_HCI_EVT_LE_ENHANCED_CONN_COMPLETE_V2,
+
+    [41 ... 63] = 0,
+
+};
 
 static inline hci_cmd_format_t *new_hci_cmd_format(
     uint16_t opcode, uint32_t size, uint32_t rsp_size, int offset1, int offset2,
@@ -58,12 +259,12 @@ static inline hci_evt_format_t *new_hci_evt_format(bool le, uint16_t opcode,
     g_array_append_val(hci_evts, _fmt);                                    \
   } while (0);
 
-#define DEF_LE_EVT(_opcode, _size, _o1, _o2, _o3)                          \
-  do {                                                                     \
-    hci_evt_format_t *_fmt =                                               \
-        new_hci_evt_format(true, _opcode, _size, _o1, _o2, _o3);           \
-    g_hash_table_insert(hci_evt_map, GINT_TO_POINTER(_fmt->opcode), _fmt); \
-    g_array_append_val(hci_le_evts, _fmt);                                 \
+#define DEF_LE_EVT(_opcode, _size, _o1, _o2, _o3)                             \
+  do {                                                                        \
+    hci_evt_format_t *_fmt =                                                  \
+        new_hci_evt_format(true, _opcode, _size, _o1, _o2, _o3);              \
+    g_hash_table_insert(hci_le_evt_map, GINT_TO_POINTER(_fmt->opcode), _fmt); \
+    g_array_append_val(hci_le_evts, _fmt);                                    \
   } while (0);
 
 #define DEF_RSP(_cmd, _evt)                                            \
@@ -88,6 +289,9 @@ void __ctor init_hci_formats(void) {
   hci_evt_map = g_hash_table_new(g_direct_hash, g_direct_equal);
   hci_rsp_map = g_hash_table_new(g_direct_hash, g_direct_equal);
   hci_le_evt_map = g_hash_table_new(g_direct_hash, g_direct_equal);
+  hci_event_mask_map = g_hash_table_new(g_direct_hash, g_direct_equal);
+  hci_event_mask_page2_map = g_hash_table_new(g_direct_hash, g_direct_equal);
+  hci_le_event_mask_map = g_hash_table_new(g_direct_hash, g_direct_equal);
 
   DEF_CMD(0x401, 5, 0, -1, -1, -1, -1, -1);
   DEF_CMD(0x402, 0, 1, -1, -1, 0, -1, -1);
@@ -357,6 +561,7 @@ void __ctor init_hci_formats(void) {
   DEF_EVT(0x5, 4, 0, -1, 1);
   DEF_EVT(0x6, 3, 0, -1, 1);
   DEF_EVT(0x7, 255, 0, 1, -1);
+  DEF_EVT(0x8, 4, 0, 1, -1);
   DEF_EVT(0x9, 3, 0, -1, 1);
   DEF_EVT(0xa, 4, 0, -1, 1);
   DEF_EVT(0xb, 11, 0, -1, 1);
@@ -407,7 +612,6 @@ void __ctor init_hci_formats(void) {
   DEF_EVT(0x57, 2, -1, -1, 0);
   DEF_EVT(0x58, 8, -1, -1, 0);
   DEF_LE_EVT(1, 19, 1, -1, 2);
-  DEF_LE_EVT(3, 10, 1, -1, 2);
   DEF_LE_EVT(4, 12, 1, -1, 2);
   DEF_LE_EVT(5, 13, -1, -1, 1);
   DEF_LE_EVT(6, 11, -1, -1, 1);
@@ -442,22 +646,22 @@ void __ctor init_hci_formats(void) {
 
 hci_cmd_format_t *get_hci_cmd(uint16_t opcode) {
   return (hci_cmd_format_t *)g_hash_table_lookup(hci_cmd_map,
-                                                 GINT_TO_POINTER(opcode));
+                                                 GUINT_TO_POINTER(opcode));
 }
 
 hci_evt_format_t *get_hci_evt(uint8_t opcode) {
   return (hci_evt_format_t *)g_hash_table_lookup(hci_evt_map,
-                                                 GINT_TO_POINTER(opcode));
+                                                 GUINT_TO_POINTER(opcode));
 }
 
 hci_evt_format_t *get_hci_le_evt(uint8_t opcode) {
   return (hci_evt_format_t *)g_hash_table_lookup(hci_le_evt_map,
-                                                 GINT_TO_POINTER(opcode));
+                                                 GUINT_TO_POINTER(opcode));
 }
 
 hci_evt_format_t *get_hci_cmd_rsp(uint16_t opcode) {
   return (hci_evt_format_t *)g_hash_table_lookup(hci_rsp_map,
-                                                 GINT_TO_POINTER(opcode));
+                                                 GUINT_TO_POINTER(opcode));
 }
 
 hci_cmd_format_t *get_hci_cmd_by_index(uint32_t index) {
@@ -475,14 +679,50 @@ hci_evt_format_t *get_hci_le_evt_by_index(uint32_t index) {
   return g_array_index(hci_le_evts, hci_evt_format_t *, index);
 }
 
+void update_event_mask_map(void) {
+  for (int i = 0; i < sizeof(event_mask); ++i) {
+    if (event_mask[i]) {
+      g_hash_table_insert(hci_event_mask_map, GUINT_TO_POINTER(event_mask[i]),
+                          GUINT_TO_POINTER(1));
+    }
+  }
+}
+
+void update_event_mask_page2_map(void) {
+  for (int i = 0; i < sizeof(event_mask_page2); ++i) {
+    if (event_mask_page2[i]) {
+      g_hash_table_insert(hci_event_mask_page2_map,
+                          GUINT_TO_POINTER(event_mask_page2[i]),
+                          GUINT_TO_POINTER(1));
+    }
+  }
+}
+
+void update_le_event_mask_map(void) {
+  for (int i = 0; i < sizeof(le_event_mask); ++i) {
+    if (le_event_mask[i]) {
+      g_hash_table_insert(hci_le_event_mask_map,
+                          GUINT_TO_POINTER(le_event_mask[i]),
+                          GUINT_TO_POINTER(1));
+    }
+  }
+}
+
 void add_hci_iut_evt(uint8_t opcode) {
   hci_evt_format_t *fmt = get_hci_evt(opcode);
-  g_array_append_val(hci_iut_evts, fmt);
+  if (!fmt) { FATAL("Unhandled event: 0x%x", opcode); }
+  if (g_hash_table_lookup(hci_event_mask_map, GUINT_TO_POINTER(opcode)) ||
+      g_hash_table_lookup(hci_event_mask_page2_map, GUINT_TO_POINTER(opcode))) {
+    g_array_append_val(hci_iut_evts, fmt);
+  }
 }
 
 void add_hci_iut_le_evt(uint8_t opcode) {
   hci_evt_format_t *fmt = get_hci_le_evt(opcode);
-  g_array_append_val(hci_iut_le_evts, fmt);
+  if (!fmt) { FATAL("Unhandled LE Event: 0x%x", opcode); }
+  if (g_hash_table_lookup(hci_le_event_mask_map, GUINT_TO_POINTER(opcode))) {
+    g_array_append_val(hci_iut_le_evts, fmt);
+  }
 }
 
 uint32_t hci_cmd_cnt(void) {
@@ -505,12 +745,12 @@ uint32_t hci_iut_le_evt_cnt(void) {
   return hci_iut_le_evts->len;
 }
 
-GArray *    hci_nodes;
+GArray     *hci_nodes;
 GHashTable *hci_node_map;
 
 void __ctor init_hci_nodes(void) {
   hci_nodes = g_array_new(true, true, sizeof(hci_node_t));
-  hci_node_map = g_hash_table_new(g_direct_hash, g_direct_hash);
+  hci_node_map = g_hash_table_new(g_direct_hash, g_direct_equal);
 }
 
 uint32_t hci_node(uint8_t *message) {
@@ -540,7 +780,7 @@ uint32_t hci_node(uint8_t *message) {
 
   } else if (type == BT_H4_ACL_PKT) {
     bt_hci_acl_hdr *acl_header = (bt_hci_acl_hdr *)&message[1];
-    bt_l2cap_hdr *  l2cap_header = (bt_l2cap_hdr *)acl_header->data;
+    bt_l2cap_hdr   *l2cap_header = (bt_l2cap_hdr *)acl_header->data;
     result.opcode1 = BT_H4_ACL_PKT;
     result.opcode2 = l2cap_header->cid;
     result.opcode3 = l2cap_header->data[0];

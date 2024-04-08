@@ -345,7 +345,3 @@ static void __attribute__((__constructor__)) rcu_init(void)
 #endif
     rcu_init_complete();
 }
-
-bool qemu_in_rcu_thread() {
-    qemu_thread_is_self(&thread);
-}

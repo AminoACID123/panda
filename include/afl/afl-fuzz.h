@@ -163,7 +163,7 @@ typedef struct message {
   u8 data[];
 } __attribute__((packed)) message_t;
 
-struct queue_entry {
+typedef struct queue_entry {
 
   char *fname;                            /* File name for the test case      */
   u32 len;                              /* Input length                     */
@@ -212,7 +212,7 @@ struct queue_entry {
   bt_state_t          bt_state;
   u8                  loaded;
 
-};
+} queue_entry_t;
 
 struct extra_data {
 
@@ -801,6 +801,9 @@ typedef struct afl_state {
   u32 iut_evt_cnt;
   u32 hci_le_evt_cnt;
   u32 iut_le_evt_cnt;
+  u8 message_emitted;
+
+  FILE* rt_log;
 
 } afl_state_t;
 
@@ -1337,27 +1340,49 @@ static inline u64 next_p2(u64 val) {
 }
 
 /* Buzzer */
-void emit_message(afl_state_t *, bt_state_t*, struct queue_entry *, u32);
-void append_num_completed_packets(afl_state_t *, bt_state_t *, struct queue_entry *, u16, u8);
-void append_cmd_status(afl_state_t *, bt_state_t *, struct queue_entry *, u16 opcode, u8, u8); 
-void append_cmd_complete(afl_state_t *, bt_state_t *, struct queue_entry *, u16 , void *, u32, u8);
-void append_cmd_complete_success(afl_state_t *, bt_state_t *, struct queue_entry*, u16, u8);
-void append_le_event(afl_state_t *, bt_state_t *, struct queue_entry *, u8, void *, u32, u8);
-void append_discon_complete(afl_state_t *, bt_state_t *, struct queue_entry *, u16, u8);
-void append_conn_request(afl_state_t *, bt_state_t *, struct queue_entry *, u16, u8);
-void append_conn_complete(afl_state_t *, bt_state_t *, struct queue_entry *, u16, u8, u8);
-void append_link_change_event(afl_state_t *, bt_state_t *, struct queue_entry *, u16, u8);
-void append_event_from_format(afl_state_t *, struct queue_entry *, hci_evt_format_t *, u8);
-void append_event(afl_state_t *, struct queue_entry *, u8, void *, u32, u8);
-void append_event_random(afl_state_t *, bt_state_t *, struct queue_entry *, u8);
-void append_l2cap_sig(afl_state_t *, bt_state_t *, struct queue_entry *, u16, u16, u8, u8, void *, u32, u8); 
-void append_l2cap_sig_random(afl_state_t *, bt_state_t *, struct queue_entry *, u8);
-void append_smp(afl_state_t *, bt_state_t *, struct queue_entry *, u16, u16, u8, void *, u32, u8);
-void append_smp_random(afl_state_t *, bt_state_t *, struct queue_entry *, u8);
-void append_att(afl_state_t *, bt_state_t *, struct queue_entry *, u16, u8, void *, u32, u8);
-void append_att_random(afl_state_t *, bt_state_t *, struct queue_entry *, u8);
-void append_message_random(afl_state_t *, bt_state_t *, struct queue_entry *, u8);
+void emit_message(afl_state_t *, struct queue_entry *, u32);
+void emit_num_completed_packets(afl_state_t *, struct queue_entry *, u16);
+void emit_cmd_status(afl_state_t *, struct queue_entry *, u16 opcode, u8); 
+void emit_cmd_complete(afl_state_t *, struct queue_entry *, u16 , void *, u32);
+void emit_cmd_complete_success(afl_state_t *, struct queue_entry*, u16);
+void emit_le_event(afl_state_t *, struct queue_entry *, u8, void *, u32);
+void emit_discon_complete(afl_state_t *, struct queue_entry *, u16);
+void emit_conn_request(afl_state_t *, struct queue_entry *, u16);
+void emit_conn_complete(afl_state_t *, struct queue_entry *, u16, u8);
+void emit_link_change_event(afl_state_t *, struct queue_entry *, u16);
+void emit_event_from_format(afl_state_t *, struct queue_entry *, hci_evt_format_t *);
+void emit_event(afl_state_t *, struct queue_entry *, u8, void *, u32);
+void emit_event_random(afl_state_t *, struct queue_entry *);
+void emit_l2cap_sig(afl_state_t *, struct queue_entry *, u16, u16, u8, u8, void *, u32); 
+void emit_l2cap_sig_random(afl_state_t *, struct queue_entry *);
+void emit_smp(afl_state_t *, struct queue_entry *, u16, u16, u8, void *, u32);
+void emit_smp_random(afl_state_t *, struct queue_entry *);
+void emit_att(afl_state_t *, struct queue_entry *, u16, u8, void *, u32);
+void emit_att_random(afl_state_t *, struct queue_entry *);
+void emit_message_random(afl_state_t *, struct queue_entry *);
 
+static inline FILE* open_rt_log() {
+  return fopen("rt_log", "wb");
+}
+
+static inline void reset_rt_log(FILE* f) {
+  rewind(f);
+}
+
+static inline void write_rt_log(FILE* f, message_t* message) {
+  u32 message_cnt;
+  long offset = ftell(f);
+  fwrite(message, 1, message->size + sizeof(message_t), f);
+  rewind(f);
+  fread(&message_cnt, sizeof(message_cnt), 1, f);
+  ++message_cnt;
+  fwrite(&message_cnt, sizeof(message_cnt), 1, f);
+  fseek(f, offset, SEEK_SET);
+}
+
+static inline void save_rt_log(FILE* f) {
+  fflush(f);
+}
 
 void bt_state_init(bt_state_t *);
 void bt_state_reset(bt_state_t *);
@@ -1367,28 +1392,29 @@ void bt_state_update_from_cmd(bt_state_t *, bt_hci_cmd_hdr *);
 void bt_state_update_from_acl(bt_state_t *, bt_hci_acl_hdr *);
 void bt_state_update(bt_state_t*, message_t*);
 void bt_state_simulate(bt_state_t *, struct queue_entry *);
-u16 bt_state_select_handle(afl_state_t *, bt_state_t *);
+u16 bt_state_select_handle(afl_state_t *);
 u8 is_link_change_event(message_t *);
 void hci_conn_set_state(hci_conn_t*, u8);
 double hci_conn_change_state_prob(hci_conn_t *);
 
-void queue_entry_load(struct queue_entry *);
-u32 queue_entry_save(struct queue_entry *, char *);
-void queue_entry_free_messages(struct queue_entry *);
-void *queue_entry_append_message(struct queue_entry *, u32, u8);
-void queue_entry_append_message_recv(afl_state_t* afl, struct queue_entry*);
-message_t* queue_entry_message_tail(struct queue_entry*);
-void queue_entry_pop_message(struct queue_entry *);
-void queue_entry_clear_messages(struct queue_entry *);
-u32 queue_entry_exec_us(struct queue_entry *);
+void queue_entry_load(queue_entry_t *);
+u32 queue_entry_save(queue_entry_t *, char *);
+void queue_entry_free_messages(queue_entry_t *);
+void *queue_entry_alloc_message(queue_entry_t *, u32);
+void queue_entry_append_message_recv(queue_entry_t*, u8* buf, u32 len);
+message_t* queue_entry_message_tail(queue_entry_t*);
+void queue_entry_pop_message(queue_entry_t *);
+void queue_entry_clear_messages(queue_entry_t *);
+u32 queue_entry_exec_us(queue_entry_t *);
 
 void trace_message_bits(afl_state_t *, struct queue_entry *);
 
 void dump_messages(struct queue_entry *);
 
-u8 handle_acl(afl_state_t *, bt_state_t *, struct queue_entry *, bt_hci_acl_hdr *, u32, u32 *, u8);
-u8 handle_command(afl_state_t *, bt_state_t *, struct queue_entry *, bt_hci_cmd_hdr *, u32, u32 *, u8);
-u8 handle_message(afl_state_t *, bt_state_t *, struct queue_entry *, message_t*);
+void handle_acl(afl_state_t *, struct queue_entry *, bt_hci_acl_hdr *);
+void handle_command(afl_state_t *, struct queue_entry *, bt_hci_cmd_hdr *);
+void handle_message(afl_state_t *, struct queue_entry *, uint8_t*, u32);
+u8 recv_message(afl_state_t *, struct queue_entry *);
 
 void handle_iut_initialization(afl_state_t *);
 
@@ -1401,6 +1427,22 @@ void queue_testcase_get(afl_state_t *afl, struct queue_entry *q);
 /* Add a new queue entry directly to the cache */
 
 void queue_testcase_store_mem(afl_state_t *afl, struct queue_entry *q);
+
+static inline u8 has_exec_fail_sig(u8* trace_bits)
+{
+  return ((uint32_t*)trace_bits)[-1] == EXEC_FAIL_SIG;
+}
+
+static inline void set_exec_fail_sig(u8* trace_bits)
+{
+  ((uint32_t*)trace_bits)[-1] = EXEC_FAIL_SIG;
+}
+
+static inline void reset_exec_fail_sig(u8* trace_bits)
+{
+  ((uint32_t*)trace_bits)[-1] = 0;
+}
+
 
 #if TESTCASE_CACHE == 1
   #error define of TESTCASE_CACHE must be zero or larger than 1

@@ -16,6 +16,10 @@
 
 #include <stdint.h>
 
+#define hci_handle_pack(_h, _f)	((__u16) ((_h & 0x0fff)|(_f << 12)))
+#define hci_handle(_h)		(_h & 0x0fff)
+#define hci_flags(_h)		(_h >> 12)
+
 #define PB_START_NO_FLUSH           0x00
 #define PB_CONT                     0x01
 #define PB_START                    0x02
@@ -2882,6 +2886,12 @@ typedef struct __packed {
 	uint16_t num_blocks;
 } bt_hci_evt_num_completed_data_blocks;
 
+#define BT_HCI_EVT_AMP_START_TEST				0x49
+
+#define BT_HCI_EVT_AMP_TEST_END					0x4a
+
+#define BT_HCI_EVT_AMP_REC_REPORT				0x4b
+
 #define BT_HCI_EVT_SHORT_RANGE_MODE_CHANGE		0x4c
 typedef struct __packed {
 	uint8_t  status;
@@ -2960,6 +2970,10 @@ typedef struct __packed {
 typedef struct __packed {
 	uint16_t handle;
 } bt_hci_evt_auth_payload_timeout_expired;
+
+#define BT_HCI_EVT_SAM_STATUS_CHANGE			0x58
+
+#define BT_HCI_EVT_ENCRYPT_CHANGE_V2			0x59
 
 #define BT_HCI_EVT_LE_CONN_COMPLETE				0x01
 typedef struct __packed {
@@ -3147,6 +3161,8 @@ typedef struct __packed {
 	uint16_t handle;
 } bt_hci_evt_le_per_sync_lost;
 
+#define BT_HCI_EVT_LE_SCAN_TMOUT		0x11
+
 #define BT_HCI_EVT_LE_ADV_SET_TERM		0x12
 typedef struct __packed {
 	uint8_t  status;
@@ -3167,6 +3183,10 @@ typedef struct __packed {
 	uint16_t handle;
 	uint8_t  algorithm;
 } bt_hci_evt_le_chan_select_alg;
+
+#define BT_HCI_EVT_LE_CONNLESS_IQ_REPORT	0x15
+
+#define BT_HCI_EVT_LE_CONN_IQ_REPORT		0x16
 
 #define BT_HCI_EVT_LE_CTE_REQUEST_FAILED	0x17
 typedef struct __packed {
@@ -3267,6 +3287,10 @@ typedef struct __packed {
 	uint8_t  sca;
 } bt_hci_evt_le_req_peer_sca_complete;
 
+#define BT_HCI_EVT_LE_PATH_LOSS_THRESH		0x20
+
+#define BT_HCI_EVT_LE_TRANSMIT_POWER_REPORT	0x21
+
 #define BT_HCI_EVT_LE_BIG_INFO_ADV_REPORT	0x22
 typedef struct __packed {
 	uint16_t sync_handle;
@@ -3283,6 +3307,21 @@ typedef struct __packed {
 	uint8_t  framing;
 	uint8_t  encryption;
 } bt_hci_evt_le_big_info_adv_report;
+
+#define BT_HCI_EVT_LE_SUBRATE_CHANGE			0x23
+
+#define BT_HCI_EVT_LE_PA_SYNC_ESTABLISHED_V2	0x24
+
+#define BT_HCI_EVT_LE_PA_REPORT_V2				0x25
+
+#define BT_HCI_EVT_LE_PA_SYNC_TRANS_REC_V2		0x26
+
+#define BT_HCI_EVT_LE_PA_SUBEVENT_REQ			0x27
+
+#define BT_HCI_EVT_LE_PA_RESP_REPORT			0x28
+
+#define BT_HCI_EVT_LE_ENHANCED_CONN_COMPLETE_V2	0x29
+
 
 #define BT_HCI_ERR_SUCCESS					0x00
 #define BT_HCI_ERR_UNKNOWN_COMMAND			0x01

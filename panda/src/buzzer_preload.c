@@ -1,5 +1,4 @@
 #define _GNU_SOURCE
-
 #include <dlfcn.h>
 #include <errno.h>
 #include <stdarg.h>
@@ -136,18 +135,21 @@ void init_crash_handling(void){
     config_handler();
 }
 
+void _abort(void);
 void _abort(void){
     char* asan_log = get_asan_log();
     bz_panic("Guest _abort: %p\n%s", __builtin_return_address(0), asan_log);
     while(1){}
 }
 
+void abort(void);
 void abort(void){
     char* asan_log = get_asan_log();
     bz_panic("Guest abort: %p\n%s", __builtin_return_address(0), asan_log);
     while(1){}
 }
 
+void __abort(void);
 void __abort(void){
     char* asan_log = get_asan_log();
     bz_panic("Guest __abort: %p\n%s", __builtin_return_address(0), asan_log);

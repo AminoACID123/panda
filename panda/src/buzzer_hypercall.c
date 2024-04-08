@@ -60,26 +60,30 @@ static void buzzer_handle_hypercall_print(CPUState *cpu) {
 }
 
 static void buzzer_handle_hypercall_panic(CPUState* cpu) {
-    target_ulong str_addr = reg_arg0(cpu);
-    target_ulong len = reg_arg1(cpu);
-    message_t* message = (message_t*)buzzer->shmem_message;
-    message->size = len + 1;
-    message->data[len] = '\0';
+    // target_ulong str_addr = reg_arg0(cpu);
+    // target_ulong len = reg_arg1(cpu);
+    // message_t* message = mbuf_fuzz_recv();
+    // message->size = len + 1;
+    // message->data[len] = '\0';
     
-    bz_virtual_memory_read(cpu, str_addr, message->data, len);
-    send_stat(STAT_RUN_CRASH);
-    exit(0);
+    // bz_virtual_memory_read(cpu, str_addr, message->data, len);
+    // buzzer_reset();
+    // send_stat(STAT_RUN_CRASH);
+    
+    
+    set_exec_fail_sig(buzzer->shmem_trace);
 }
 
 static void buzzer_handle_hypercall_guest_error(CPUState* cpu) {
-    target_ulong str_addr = reg_arg0(cpu);
-    target_ulong len = reg_arg1(cpu);
-    message_t* message = (message_t*)buzzer->shmem_message;
-    message->size = len + 1;
-    message->data[len] = '\0';
+    // target_ulong str_addr = reg_arg0(cpu);
+    // target_ulong len = reg_arg1(cpu);
+    // message_t* message = mbuf_fuzz_recv();
+    // message->size = len + 1;
+    // message->data[len] = '\0';
 
-    bz_virtual_memory_read(cpu, str_addr, message->data, len);
-    send_stat(STAT_RUN_ERROR);
+    // bz_virtual_memory_read(cpu, str_addr, message->data, len);
+    // send_stat(STAT_RUN_ERROR);
+    set_exec_fail_sig(buzzer->shmem_trace);
     exit(-1);
 }
 

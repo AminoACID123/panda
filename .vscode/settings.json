@@ -138,6 +138,8 @@
         "typedefs.h": "c",
         "tcg-utils.h": "c",
         "tcg.h": "c",
-        "module.h": "c"
+        "module.h": "c",
+        "uio.h": "c",
+        "kernelinfo.h": "c"
     }
 }
