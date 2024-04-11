@@ -679,6 +679,16 @@ hci_evt_format_t *get_hci_le_evt_by_index(uint32_t index) {
   return g_array_index(hci_le_evts, hci_evt_format_t *, index);
 }
 
+hci_evt_format_t *get_hci_iut_evt_by_index(uint32_t index) {
+  if (index >= hci_iut_evts->len) return NULL;
+  return g_array_index(hci_iut_evts, hci_evt_format_t*, index);
+}
+
+hci_evt_format_t *get_hci_iut_le_evt_by_index(uint32_t index) {
+  if (index >= hci_iut_le_evts->len) return NULL;
+  return g_array_index(hci_iut_le_evts, hci_cmd_format_t*, index);
+}
+
 void update_event_mask_map(void) {
   for (int i = 0; i < sizeof(event_mask); ++i) {
     if (event_mask[i]) {
@@ -713,6 +723,7 @@ void add_hci_iut_evt(uint8_t opcode) {
   if (!fmt) { FATAL("Unhandled event: 0x%x", opcode); }
   if (g_hash_table_lookup(hci_event_mask_map, GUINT_TO_POINTER(opcode)) ||
       g_hash_table_lookup(hci_event_mask_page2_map, GUINT_TO_POINTER(opcode))) {
+    OKF("Append %d", fmt->opcode);
     g_array_append_val(hci_iut_evts, fmt);
   }
 }
@@ -721,8 +732,18 @@ void add_hci_iut_le_evt(uint8_t opcode) {
   hci_evt_format_t *fmt = get_hci_le_evt(opcode);
   if (!fmt) { FATAL("Unhandled LE Event: 0x%x", opcode); }
   if (g_hash_table_lookup(hci_le_event_mask_map, GUINT_TO_POINTER(opcode))) {
+        OKF("Append %d", fmt->opcode);
+
     g_array_append_val(hci_iut_le_evts, fmt);
   }
+}
+
+void show_iut_evts(void) {
+  
+}
+
+void show_iut_le_evts(void) {
+
 }
 
 uint32_t hci_cmd_cnt(void) {

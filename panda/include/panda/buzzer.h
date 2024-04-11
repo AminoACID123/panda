@@ -25,11 +25,6 @@ extern "C" {
 #define BZ_ACL_MAX_PKT  5
 #define BZ_SCO_MAX_PKT  5
 
-#define CTRL_WRITE_FD 190
-#define CTRL_READ_FD 191
-#define STAT_WRITE_FD 192
-#define STAT_READ_FD 193
-
 // Control commands
 enum {
   CTRL_STOP_CPU = 1, // Stop virtual cpu but do not exit process
@@ -99,11 +94,17 @@ typedef struct buzzer_state {
   char replay_path[BZ_PATH_MAX];
   bool enable_guest_print;
   bool enable_asan;
+  bool no_ui;
   int device_no;
 
   /* Runtime */
-  int sock_host;
-  int sock_controller;
+  int stat_pipe[2];
+  int ctrl_pipe[2];
+  int c2h_data_pipe[2];
+  int h2c_data_pipe[2];
+
+  // int sock_host;
+  // int sock_controller;
   uint32_t exec_fail_sig;
   struct timeval tmout;
   bool stop_cpu;
@@ -121,6 +122,11 @@ typedef struct buzzer_state {
   uint8_t *shmem_trace_child;
   uint8_t *shmem_trace_mother;
   uint8_t *shmem_trace_root;
+
+  uint16_t acl_mtu;
+  uint16_t acl_max_pkt;
+
+  bool exec_speed_abnormal;
 
   void* bb_map;
   
@@ -140,11 +146,11 @@ void buzzer_callback_after_machine_init(void);
 void buzzer_reset(void);
 
 void controller_send(uint8_t* buf, int len);
-void controller_send_iov(struct iovec* iov, int cnt);
-int controller_recv_default(void);
 int controller_recv(uint8_t* buf, int tmout_ms);
+void controller_recv_drain(uint8_t *buf);
 void host_send(uint8_t* buf, int len);
 int host_recv(uint8_t* buf, int tmout_ms);
+void host_recv_drain(uint8_t *buf);
 
 void *shm_hash_map_new(size_t n);
 void shm_hash_map_reserve(void *opaque, size_t n);
@@ -155,26 +161,26 @@ uint64_t shm_hash_map_lookup_value(void* opaque, uint32_t value);
 #define send_ctrl(_ctrl)                                                       \
   do {                                                                         \
     int __ctrl = _ctrl;                                                        \
-    write(CTRL_WRITE_FD, &__ctrl, sizeof(__ctrl));                             \
+    write(buzzer->ctrl_pipe[1], &__ctrl, sizeof(__ctrl));                             \
   } while (0);
 
 #define recv_ctrl()                                                            \
   ({                                                                           \
     int _ctrl;                                                                 \
-    read(CTRL_READ_FD, &_ctrl, sizeof(_ctrl));                                 \
+    read(buzzer->ctrl_pipe[0], &_ctrl, sizeof(_ctrl));                                 \
     _ctrl;                                                                     \
   })
 
 #define send_stat(_stat)                                                       \
   do {                                                                         \
     int __stat = _stat;                                                        \
-    write(STAT_WRITE_FD, &__stat, sizeof(__stat));                             \
+    write(buzzer->stat_pipe[1], &__stat, sizeof(__stat));                             \
   } while (0);
 
 #define recv_stat()                                                            \
   ({                                                                           \
     int _stat;                                                                 \
-    read(STAT_READ_FD, &_stat, sizeof(_stat));                                 \
+    read(buzzer->stat_pipe[0], &_stat, sizeof(_stat));                                 \
     _stat;                                                                     \
   })
 

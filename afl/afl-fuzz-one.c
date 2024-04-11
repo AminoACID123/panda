@@ -65,8 +65,8 @@ u8 fuzz_one_original(afl_state_t *afl) {
   u64 havoc_queued = 0, orig_hit_cnt, new_hit_cnt = 0, prev_cksum, _prev_cksum;
   u32 splice_cycle = 0, perf_score = 100, orig_perf, eff_cnt = 1;
 
-  u8  fault, fsrv_created = 0, timed_out = 0;
-  s32 status;
+  u8  fault, fsrv_created = 0, timed_out = 0, ignored;
+  s32 status, pktlen, tmout_ms;
   u32 use_stacking, stack_max;
 
   u8 ret_val = 1, tmp;
@@ -126,7 +126,7 @@ iut_init_stage:
   afl->stage_short = "IutInit";
   afl->stage_max = 5;
 
-  // Handle IUT init stage.
+  // Handle Implementation Under Test (IUT) init stage.
   // In IUT init stage, the host will perform mutual configuration with
   // the controller.
 
@@ -152,9 +152,13 @@ iut_init_stage:
       FATAL("IUT crashes during init");
     }
 
-    timed_out = recv_message(afl, q);
+    pktlen = controller_recv(buzzer->mbuf, BZ_TMOUT_MS);
 
-    if (timed_out) { break; }
+    if (pktlen == -2) { break; }
+
+    queue_entry_append_message_recv(q, buzzer->mbuf, pktlen);
+
+    handle_message(afl, q, buzzer->mbuf, pktlen);
   }
 
   afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
@@ -175,105 +179,94 @@ evt_enum_stage:
   afl->stage_short = "EvtEnum";
   afl->stage_max = hci_evt_cnt() + hci_le_evt_cnt();
 
-  {
-    queue_entry_clear_messages(q);
-    memcpy(afl->fsrv.trace_bits, afl->fsrv.trace_bits_mother,
-           afl->fsrv.map_size);
-    queue_entry_append_event(q, 0xEF, u8, 255);
-    afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
-    emit_message(afl, q, 0);
-    recv_message(afl, q);
-    afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
-    classify_counts(&afl->fsrv);
-    has_new_bits(afl, afl->virgin_bits);
-  }
+  dry_run_event(afl, q, 0xEF, 255);
+  // {
+  //   queue_entry_clear_messages(q);
+  //   memcpy(afl->fsrv.trace_bits, afl->fsrv.trace_bits_mother,
+  //          afl->fsrv.map_size);
+  //   queue_entry_append_event(q, 0xEF, u8, 255);
+  //   afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
+  //   emit_message(afl, q, 0);
+  //   controller_recv(buzzer->mbuf, BZ_TMOUT_MS);
+  //   afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
+  //   controller_recv_drain(buzzer->mbuf);
+  //   classify_counts(&afl->fsrv);
+  //   has_new_bits(afl, afl->virgin_bits);
+  // }
 
-  {
-    queue_entry_clear_messages(q);
-    memcpy(afl->fsrv.trace_bits, afl->fsrv.trace_bits_mother,
-           afl->fsrv.map_size);
-    queue_entry_append_event(q, 0xEF, u8, 10);
-    afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
-    emit_message(afl, q, 0);
-    recv_message(afl, q);
-    afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
-    classify_counts(&afl->fsrv);
-    has_new_bits(afl, afl->virgin_bits);
-  }
+  dry_run_event(afl, q, 0xEF, 10);
+  // {
+  //   queue_entry_clear_messages(q);
+  //   memcpy(afl->fsrv.trace_bits, afl->fsrv.trace_bits_mother,
+  //          afl->fsrv.map_size);
+  //   queue_entry_append_event(q, 0xEF, u8, 10);
+  //   afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
+  //   emit_message(afl, q, 0);
+  //   recv_message(afl, q, 0);
+  //   afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
+  //   classify_counts(&afl->fsrv);
+  //   has_new_bits(afl, afl->virgin_bits);
+  // }
 
-  {
-    queue_entry_clear_messages(q);
-    memcpy(afl->fsrv.trace_bits, afl->fsrv.trace_bits_mother,
-           afl->fsrv.map_size);
-    queue_entry_append_le_event(q, 0xEF, u8, 10);
-    afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
-    emit_message(afl, q, 0);
-    recv_message(afl, q);
-    afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
-    classify_counts(&afl->fsrv);
-    has_new_bits(afl, afl->virgin_bits);
-  }
+  dry_run_le_event(afl, q, 0xEF, 10);
+  // {
+  //   queue_entry_clear_messages(q);
+  //   memcpy(afl->fsrv.trace_bits, afl->fsrv.trace_bits_mother,
+  //          afl->fsrv.map_size);
+  //   queue_entry_append_le_event(q, 0xEF, u8, 10);
+  //   afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
+  //   emit_message(afl, q, 0);
+  //   recv_message(afl, q, 0);
+  //   afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
+  //   classify_counts(&afl->fsrv);
+  //   has_new_bits(afl, afl->virgin_bits);
+  // }
 
   for (int i = 0, n = hci_evt_cnt(); i < n; ++i) {
     hci_evt_format_t *fmt = get_hci_evt_by_index(i);
-
-    memcpy(buzzer->shmem_trace_child, buzzer->shmem_trace_mother,
-           afl->fsrv.map_size);
-
-    queue_entry_clear_messages(q);
-    // fmt->opcode = 0x0F;
-    queue_entry_append_event(q, fmt->opcode, u8, fmt->size);
-
-    afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
-
-    emit_message(afl, q, 0);
-
-    recv_message(afl, q);
-
-    afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
-
-    ACTF("0x%02x", fmt->opcode);
-
-    classify_counts(&afl->fsrv);
-
-    if (2 == has_new_bits(afl, afl->virgin_bits)) {
-      OKF("0x%02x", fmt->opcode);
-      add_hci_iut_evt(fmt->opcode);
-    }
+    enumerate_event(afl, q, fmt->opcode, fmt->size);
+    // memcpy(buzzer->shmem_trace_child, buzzer->shmem_trace_mother,
+    //        afl->fsrv.map_size);
+    // queue_entry_clear_messages(q);
+    // queue_entry_append_event(q, fmt->opcode, u8, fmt->size);
+    // afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
+    // emit_message(afl, q, 0);
+    // recv_message(afl, q, 0);
+    // afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
+    // ACTF("0x%02x", fmt->opcode);
+    // classify_counts(&afl->fsrv);
+    // if (2 == has_new_bits(afl, afl->virgin_bits)) {
+    //   OKF("0x%02x", fmt->opcode);
+    //   add_hci_iut_evt(fmt->opcode);
+    // }
   }
 
   for (int i = 0, n = hci_le_evt_cnt(); i < n; ++i) {
     hci_evt_format_t *fmt = get_hci_le_evt_by_index(i);
-
-    memcpy(buzzer->shmem_trace_child, buzzer->shmem_trace_mother,
-           afl->fsrv.map_size);
-
-    queue_entry_clear_messages(q);
-
-    queue_entry_append_le_event(q, fmt->opcode, u8, fmt->size - 1);
-
-    afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
-
-    emit_message(afl, q, 0);
-
-    recv_message(afl, q);
-
-    afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
-
-    ACTF("0x%02x", fmt->opcode);
-
-    classify_counts(&afl->fsrv);
-
-    if (2 == has_new_bits(afl, afl->virgin_bits)) {
-      OKF("0x%02x", fmt->opcode);
-      add_hci_iut_le_evt(fmt->opcode);
-    }
+    enumerate_le_event(afl, q, fmt->opcode, fmt->size - 1);
+    // memcpy(buzzer->shmem_trace_child, buzzer->shmem_trace_mother,
+    //        afl->fsrv.map_size);
+    // queue_entry_clear_messages(q);
+    // queue_entry_append_le_event(q, fmt->opcode, u8, fmt->size - 1);
+    // afl_fsrv_push_child(&afl->fsrv, send_ctrl_start_normal());
+    // emit_message(afl, q, 0);
+    // recv_message(afl, q, 0);
+    // afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
+    // ACTF("0x%02x", fmt->opcode);
+    // classify_counts(&afl->fsrv);
+    // if (2 == has_new_bits(afl, afl->virgin_bits)) {
+    //   OKF("0x%02x", fmt->opcode);
+    //   add_hci_iut_le_evt(fmt->opcode);
+    // }
   }
 
   afl->hci_evt_cnt = hci_evt_cnt();
   afl->hci_le_evt_cnt = hci_le_evt_cnt();
   afl->iut_evt_cnt = hci_iut_evt_cnt();
   afl->iut_le_evt_cnt = hci_iut_le_evt_cnt();
+
+  show_iut_evts();
+  show_iut_le_evts();
 
   afl->passed_evt_enum = 1;
 
@@ -328,24 +321,63 @@ havoc_stage:
 
     q->subseq_tmouts = 0;
 
-    for (int i = 0; i < use_stacking; ++i) {
-      fault = recv_message(afl, q);
+    if (afl->stats_avg_exec > 60) {
+      WARNF("Exec speed abnormal");
+    }
+  
+    i = 0;
 
-      if (fault == FSRV_RUN_TMOUT) {
-        emit_message_random(afl, q);
+    tmout_ms = BZ_TMOUT_MS;
+
+    fault = FSRV_RUN_OK;
+
+    while (i < use_stacking) {
+
+      pktlen = controller_recv(buzzer->mbuf, tmout_ms);
+
+      if (pktlen == -2) {
         q->subseq_tmouts++;
+
         if (q->subseq_tmouts + q->mother->subseq_tmouts >= TMOUT_LIMIT) {
           fault = FSRV_RUN_TMOUT;
           break;
         }
-      }
-      else if (unlikely(fault == FSRV_RUN_CRASH)) {
-        break;
+
+        emit_message_random(afl ,q);
+
+        ++i;
       }
       else {
-        q->subseq_tmouts = 0;
+
+        queue_entry_append_message_recv(q, buzzer->mbuf, pktlen);
+
+        ignored = handle_message(afl, q, buzzer->mbuf, pktlen);
+
+        if (!ignored) ++i;
       }
     }
+
+
+    // for (int i = 0; i < use_stacking; ++i) {
+    //   fault = recv_message(afl, q, 1);
+
+    //   if (fault == FSRV_RUN_TMOUT) {
+    //     emit_message_random(afl, q);
+    //     q->subseq_tmouts++;
+    //     if (q->subseq_tmouts + q->mother->subseq_tmouts >= TMOUT_LIMIT) {
+    //       fault = FSRV_RUN_TMOUT;
+    //       break;
+    //     }
+    //   }
+    //   else if (unlikely(fault == FSRV_RUN_CRASH)) {
+    //     break;
+    //   }
+    //   else {
+    //     q->subseq_tmouts = 0;
+    //   }
+    // }
+  
+    controller_recv_drain(buzzer->mbuf);
 
     afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
 

@@ -19,7 +19,8 @@ typedef struct BuzzerChardev{
     Chardev parent;
     int efd;
     Chardev* chr;
-    QIOChannel *ioc;
+    QIOChannel *ioc_in;
+    QIOChannel *ioc_out;
     size_t max_size;
     RxWork rx_work;
     TxWork tx_works[BUZZER_MAX_TX_WORKS];

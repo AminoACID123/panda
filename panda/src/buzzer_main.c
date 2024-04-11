@@ -70,7 +70,8 @@ static uint64_t recv_time;
 //     send_stat(STAT_RUN_OK);
 // }
 
-static void on_ctrl_recv(void* opaque) {
+static void on_ctrl_recv(void* opaque) 
+{
     int cmd = recv_ctrl();
     if (cmd == CTRL_CREATE_FSRV) {
         buzzer->stop_cpu = true;
@@ -88,40 +89,39 @@ static void on_ctrl_recv(void* opaque) {
         if (unlikely(rr_in_record())) {
             buzzer_on_record_end();
         }
+        host_recv_drain(buzzer->mbuf);
         exit(0);
     }
 }
 
-void buzzer_on_record_end(void) {
+void buzzer_on_record_end(void) 
+{
     rr_record_end_of_log();
     rr_finalize_write_log();   
 }
 
-void buzzer_on_replay_end(void) {
+void buzzer_on_replay_end(void) 
+{
     exit(0);
 }
 
-void buzzer_callback_after_machine_init(void) {
-    qemu_set_fd_handler(CTRL_READ_FD, on_ctrl_recv, NULL, NULL);
+void buzzer_callback_after_machine_init(void) 
+{
+    qemu_set_fd_handler(buzzer->ctrl_pipe[0], on_ctrl_recv, NULL, NULL);
     // recv_timeout_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL, on_timeout, NULL);
     // recv_complete_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, buzzer_on_recv_complete, NULL);
 }
 
 void __hot controller_send(uint8_t* buf, int len)
 {
-    int send_len;
-    do {
-        send_len = write(buzzer->sock_controller, buf, len);
-        if (send_len < 0) {
-            FATAL("Controller send failed");
-        }
-        len -= send_len;
-    } while(len > 0);
-}
-
-void __hot controller_send_iov(struct iovec* iov, int cnt)
-{
-    writev(buzzer->sock_controller, iov, cnt);
+    int fd = buzzer->c2h_data_pipe[1];
+    struct iovec iov = {
+        .iov_base = buf,
+        .iov_len = len
+    };
+    if (unlikely(writev(fd, &iov, 1) == -1)) {
+        FATAL("Controller send fail");
+    }
 }
 
 int __hot controller_recv(uint8_t* buf, int tmout_ms)
@@ -130,7 +130,7 @@ int __hot controller_recv(uint8_t* buf, int tmout_ms)
     fd_set fdset;
     struct timeval timeout;
 
-    fd = buzzer->sock_controller;
+    fd = buzzer->h2c_data_pipe[0];
     FD_ZERO(&fdset);
     FD_SET(fd, &fdset);
 
@@ -144,23 +144,37 @@ int __hot controller_recv(uint8_t* buf, int tmout_ms)
     if (sret == 0) {
         return -2;
     }
+    else if (unlikely(sret == -1)) {
+        FATAL("Select fail: %s", strerror(errno));
+    }
 
-    return read(buzzer->sock_controller, buf, BZ_BUF_MAX);
+    return read(fd, buf, BZ_BUF_MAX);
 }
 
-void buzzer_reset(void) {
+void __hot controller_recv_drain(uint8_t *buf)
+{
+    int ret;
+    do {
+        ret = controller_recv(buf, 0);
+    } while (ret != -2);
+}
+
+void buzzer_reset(void) 
+{
     timer_del(recv_timeout_timer);
     timer_del(recv_complete_timer);
     char_buzzer_reset();
 }
 
-void buzzer_reset_timers(void) {
+void buzzer_reset_timers(void) 
+{
     timer_del(recv_timeout_timer);
     timer_del(recv_complete_timer);
 }
 
-static void buzzer_replay_pklg(char* path) {
-    int stat;
+static void buzzer_replay_pklg(char* path) 
+{
+    int stat, len;
     uint32_t message_cnt = 0;
     message_t* message = realloc(NULL, sizeof(message_t));
     FILE* f = fopen(path, "rb");
@@ -180,64 +194,86 @@ static void buzzer_replay_pklg(char* path) {
 
         // memcpy(buzzer->shmem_message_fuzz_send, message, message->size + sizeof(message_t));
         controller_send(message->data, message->size);
-        controller_recv(buzzer->mbuf, BZ_TMOUT_MS);
+        qemu_hexdump(message->data, stdout, "fuzz send", message->size);
+        len = controller_recv(buzzer->mbuf, BZ_TMOUT_MS);
+        if (len == -2) len = 0;
+        qemu_hexdump(buzzer->mbuf, stdout, "fuzz recv", len);
 
         // send_ctrl_step_one();
 
         // stat = recv_stat();
-
     }
+    controller_recv_drain(buzzer->mbuf);
 }
 
 static void launch_children(void)
 {
     struct sockaddr_un addr;
-    int len, sk, on = 1, ctrl_pipe[2], stat_pipe[2];
+    int len, sk, on = 1;
+    int pipesize = BZ_BUF_MAX;
 
-    pipe(ctrl_pipe);
-    pipe(stat_pipe);
+    pipe2(buzzer->stat_pipe, O_DIRECT);
+    pipe2(buzzer->ctrl_pipe, O_DIRECT);
+    pipe2(buzzer->h2c_data_pipe, O_DIRECT);
+    pipe(buzzer->c2h_data_pipe);
 
-    sk = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0);
-    memset(&addr, 0, sizeof(addr));
-    addr.sun_family = PF_UNIX;
-    strcpy(addr.sun_path, BZ_SOCKET);
-    remove(BZ_SOCKET);
-    // ioctl(sk, FIONBIO, (char*)&on);
-    bind(sk, (struct sockaddr*)&addr, sizeof(addr));
-    listen(sk, 3);
+    fcntl(buzzer->h2c_data_pipe[1], F_SETPIPE_SZ, &pipesize);
+    fcntl(buzzer->c2h_data_pipe[1], F_SETPIPE_SZ, &pipesize);
+    fcntl(buzzer->h2c_data_pipe[1], F_GETPIPE_SZ, &pipesize);
+
+
+
+    // sk = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0);
+    // memset(&addr, 0, sizeof(addr));
+    // addr.sun_family = PF_UNIX;
+    // strcpy(addr.sun_path, BZ_SOCKET);
+    // remove(BZ_SOCKET);
+    // // ioctl(sk, FIONBIO, (char*)&on);
+    // bind(sk, (struct sockaddr*)&addr, sizeof(addr));
+    // listen(sk, 3);
     
     // launch qemu executor
     pid_t pid = fork();
     
     if (!pid) {
-        dup2(stat_pipe[1], STAT_WRITE_FD);
-        dup2(ctrl_pipe[0], CTRL_READ_FD);
-        close(ctrl_pipe[0]);
-        close(ctrl_pipe[1]);
-        close(stat_pipe[0]);
-        close(stat_pipe[1]);
-        close(sk);
+        // dup2(stat_pipe[1], STAT_WRITE_FD);
+        // dup2(ctrl_pipe[0], CTRL_READ_FD);
+        // close(ctrl_pipe[0]);
+        // close(ctrl_pipe[1]);
+        // close(stat_pipe[0]);
+        // close(stat_pipe[1]);
+        // close(sk);
+        
+        close(buzzer->stat_pipe[0]);
+        close(buzzer->ctrl_pipe[1]);
+        close(buzzer->c2h_data_pipe[1]);
+        close(buzzer->h2c_data_pipe[0]);
 
         buzzer->root_fsrv = getpid();
         buzzer->bb_map = shm_hash_map_new(MAP_SIZE << 2);
 
-        sk = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0);
-        connect(sk, (struct sockaddr *)&addr, sizeof(struct sockaddr_un));
-        buzzer->sock_host = sk;
+        // sk = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0);
+        // connect(sk, (struct sockaddr *)&addr, sizeof(struct sockaddr_un));
+        // buzzer->sock_host = sk;
 
         return;
     }
 
-    dup2(stat_pipe[0], STAT_READ_FD);
-    dup2(ctrl_pipe[1], CTRL_WRITE_FD);
-    close(ctrl_pipe[0]);
-    close(ctrl_pipe[1]);
-    close(stat_pipe[0]);
-    close(stat_pipe[1]);
+    // dup2(stat_pipe[0], STAT_READ_FD);
+    // dup2(ctrl_pipe[1], CTRL_WRITE_FD);
+    // close(ctrl_pipe[0]);
+    // close(ctrl_pipe[1]);
+    // close(stat_pipe[0]);
+    // close(stat_pipe[1]);
+
+    close(buzzer->stat_pipe[1]);
+    close(buzzer->ctrl_pipe[0]);
+    close(buzzer->c2h_data_pipe[0]);
+    close(buzzer->h2c_data_pipe[1]);
 
     // buzzer_fuzz_loop(pid);
-    buzzer->sock_controller = accept(sk, 0, 0);
-    OKF("Socket connected: %d", buzzer->sock_controller);
+    // buzzer->sock_controller = accept(sk, 0, 0);
+    // OKF("Socket connected: %d", buzzer->sock_controller);
 
     buzzer->mbuf_len = controller_recv(buzzer->mbuf, BZ_TMOUT_MS * 200);
     if (buzzer->mbuf_len < 0) {
@@ -259,8 +295,8 @@ static void launch_children(void)
     afl_run(pid);
 }
 
-int buzzer_main(int argc, char **argv, char **envp) {
-
+int buzzer_main(int argc, char **argv, char **envp) 
+{
     if (!strcmp(basename(argv[0]), "buzzer-fuzz")) {
         // We do all the mmap here
         uint32_t* ptr;
@@ -275,7 +311,7 @@ int buzzer_main(int argc, char **argv, char **envp) {
 
         buzzer->exec_fail_sig = EXEC_FAIL_SIG;
 
-        // Allocate buffer to send fuzz input
+        // Allocate buffer to store fuzz data
         buzzer->mbuf = malloc(BZ_BUF_MAX);
 
         // Trace bits of machine startup

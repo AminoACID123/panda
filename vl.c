@@ -3306,6 +3306,9 @@ int main_aux(int argc, char **argv, char **envp, PandaMainMode pmm)
             case QEMU_OPTION_enable_guest_print:
                 buzzer->enable_guest_print = true;
                 break;
+            case QEMU_OPTION_no_ui:
+                buzzer->no_ui = true;
+                break;
             case QEMU_OPTION_bt_dev:
                 buzzer->device_no = atoi(optarg);
                 break;

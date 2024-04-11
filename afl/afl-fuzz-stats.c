@@ -24,6 +24,7 @@
  */
 
 #include "afl/afl-fuzz.h"
+#include "panda/buzzer.h"
 #include <limits.h>
 
 static char fuzzing_state[4][12] = {"started :-)", "in progress", "final phase",
@@ -423,7 +424,9 @@ static void check_term_size(afl_state_t *afl) {
    execve() calls, plus in several other circumstances. */
 
 void show_stats(afl_state_t *afl) {
-  // return;
+  if (buzzer->no_ui) {
+    return;
+  }
   show_stats_normal(afl);
 
 }
@@ -869,8 +872,8 @@ void show_stats_normal(afl_state_t *afl) {
 
   } else {
 
-    sprintf(tmp, "%s/%s (%0.02f%%)", u_stringify_int(IB(0), afl->stage_cur),
-            u_stringify_int(IB(1), afl->stage_max),
+    sprintf(tmp, "%s/%s (%d) (%0.02f%%)", u_stringify_int(IB(0), afl->stage_cur),
+            u_stringify_int(IB(1), afl->stage_max), afl->stage_cur_val,
             ((double)afl->stage_cur) * 100 / afl->stage_max);
 
   }

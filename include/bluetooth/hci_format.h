@@ -58,9 +58,14 @@ hci_evt_format_t *get_hci_cmd_rsp(uint16_t opcode);
 hci_cmd_format_t *get_hci_cmd_by_index(uint32_t index);
 hci_evt_format_t *get_hci_evt_by_index(uint32_t index);
 hci_evt_format_t *get_hci_le_evt_by_index(uint32_t index);
+hci_evt_format_t *get_hci_iut_evt_by_index(uint32_t index);
+hci_evt_format_t *get_hci_iut_le_evt_by_index(uint32_t index);
 
 void add_hci_iut_evt(uint8_t opcode);
 void add_hci_iut_le_evt(uint8_t opcode);
+
+void show_iut_evts(void);
+void show_iut_le_evts(void);
 
 uint32_t hci_cmd_cnt(void);
 uint32_t hci_evt_cnt(void);

@@ -802,6 +802,7 @@ typedef struct afl_state {
   u32 hci_le_evt_cnt;
   u32 iut_le_evt_cnt;
   u8 message_emitted;
+  u8 hci_reset_handled;
 
   FILE* rt_log;
 
@@ -1361,6 +1362,11 @@ void emit_att(afl_state_t *, struct queue_entry *, u16, u8, void *, u32);
 void emit_att_random(afl_state_t *, struct queue_entry *);
 void emit_message_random(afl_state_t *, struct queue_entry *);
 
+void enumerate_event(afl_state_t *, struct queue_entry *, u8, u32);
+void enumerate_le_event(afl_state_t *, struct queue_entry *, u8, u32);
+void dry_run_event(afl_state_t *, struct queue_entry *, u8, u32);
+void dry_run_le_event(afl_state_t *, struct queue_entry *, u8, u32);
+
 static inline FILE* open_rt_log() {
   return fopen("rt_log", "wb");
 }
@@ -1411,10 +1417,10 @@ void trace_message_bits(afl_state_t *, struct queue_entry *);
 
 void dump_messages(struct queue_entry *);
 
-void handle_acl(afl_state_t *, struct queue_entry *, bt_hci_acl_hdr *);
-void handle_command(afl_state_t *, struct queue_entry *, bt_hci_cmd_hdr *);
-void handle_message(afl_state_t *, struct queue_entry *, uint8_t*, u32);
-u8 recv_message(afl_state_t *, struct queue_entry *);
+u8 handle_acl(afl_state_t *, struct queue_entry *, bt_hci_acl_hdr *);
+u8 handle_command(afl_state_t *, struct queue_entry *, bt_hci_cmd_hdr *);
+u8 handle_message(afl_state_t *, struct queue_entry *, uint8_t*, u32);
+u8 recv_message(afl_state_t *, struct queue_entry *, u8);
 
 void handle_iut_initialization(afl_state_t *);
 

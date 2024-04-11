@@ -189,7 +189,7 @@
 
 /* Absolute minimum number of havoc cycles (after all adjustments): */
 
-#define HAVOC_MIN 12U
+#define HAVOC_MIN 1200U
 
 /* Power Schedule Divisor */
 #define POWER_BETA 1U

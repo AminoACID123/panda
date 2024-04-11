@@ -27,7 +27,7 @@
                 "-out",
                 "out",
                 "-display",
-                "none"
+                "none",
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/x86_64-softmmu",

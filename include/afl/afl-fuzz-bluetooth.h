@@ -29,6 +29,7 @@ typedef struct bt_state {
   hci_conn_t *le_conn;
   hci_conn_t *bredr_conn;
   u8 filter_policy;
+  u8 adv_enable, scan_enable;
 } bt_state_t;
 
 #define queue_entry_append_event(_q, _opc, _type, _size)            \

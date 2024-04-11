@@ -3349,6 +3349,14 @@ STEXI
 Enable guest print in buzzer
 ETEXI
 
+DEF("no-ui", 0, QEMU_OPTION_no_ui, \
+    "-no-ui     disable AFL UI\n", QEMU_ARCH_ALL)
+STEXI
+@item -no-ui
+@findex -no-ui
+Disable AFL UI
+ETEXI
+
 DEF("args", HAS_ARG, QEMU_OPTION_args, \
     "-args      arguments passed to buzzer target\n", QEMU_ARCH_ALL)
 STEXI

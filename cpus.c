@@ -26,6 +26,7 @@
 #include "qemu/osdep.h"
 #include "qemu-common.h"
 #include "qemu/config-file.h"
+#include "chardev/char-buzzer.h"
 #include "cpu.h"
 #include "monitor/monitor.h"
 #include "qapi/qmp/qerror.h"
@@ -1296,8 +1297,34 @@ void prepare_replay(void) {
     rr_control.next = RR_NOCHANGE; 
 }
 
-void buzzer_forkserver(void* opaque);
+static void handle_stop_sig(int sig) {
+  (void)sig;
+  while(1);
+}
 
+static void setup_signal_handlers(void) {
+
+  struct sigaction sa;
+  int original_flags;
+
+  memset((void *)&sa, 0, sizeof(sa));
+  sa.sa_handler = NULL;
+#ifdef SA_RESTART
+  sa.sa_flags = SA_RESTART;
+#endif
+  sa.sa_sigaction = NULL;
+
+  sigemptyset(&sa.sa_mask);
+
+  /* Various ways of saying "stop". */
+
+  sa.sa_handler = handle_stop_sig;
+  sa.sa_flags = SA_RESETHAND;
+  sigaction(SIGSEGV, &sa, NULL);
+}
+
+
+void buzzer_forkserver(void* opaque);
 void buzzer_forkserver(void* opaque) {
     int temp;
     send_stat(STAT_FSRV_UP);
@@ -1334,8 +1361,10 @@ void buzzer_forkserver(void* opaque) {
                 tcg_cpu_thread = NULL;
                 tcg_current_rr_cpu = NULL;
 
-                // buzzer_reset();
-                host_recv(buzzer->mbuf, 0);
+                setup_signal_handlers();
+
+                char_buzzer_reset();
+                // host_recv(buzzer->mbuf, 0);
                 // qemu_cond_init(&qemu_cpu_cond);
                 // qemu_cond_init(&qemu_pause_cond);
                 // qemu_cond_init(&qemu_io_proceeded_cond);
