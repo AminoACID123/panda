@@ -46,9 +46,9 @@ extern GHashTable *hci_rsp_map;
 extern GArray *hci_iut_evts;
 extern GArray *hci_iut_le_evts;
 
-extern uint8_t event_mask[];
-extern uint8_t event_mask_page2[];
-extern uint8_t le_event_mask[];
+extern uint8_t hci_event_mask[];
+extern uint8_t hci_event_mask_page2[];
+extern uint8_t hci_le_event_mask[];
 
 hci_cmd_format_t *get_hci_cmd(uint16_t opcode);
 hci_evt_format_t *get_hci_evt(uint8_t opcode);

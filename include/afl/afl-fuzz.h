@@ -1444,7 +1444,7 @@ static inline void set_exec_fail_sig(u8* trace_bits)
   ((uint32_t*)trace_bits)[-1] = EXEC_FAIL_SIG;
 }
 
-static inline void reset_exec_fail_sig(u8* trace_bits)
+static inline void clear_exec_fail_sig(u8* trace_bits)
 {
   ((uint32_t*)trace_bits)[-1] = 0;
 }

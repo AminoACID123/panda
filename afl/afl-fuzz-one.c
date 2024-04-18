@@ -333,6 +333,12 @@ havoc_stage:
 
     while (i < use_stacking) {
 
+      if (unlikely(has_exec_fail_sig(afl->fsrv.trace_bits))) {
+        fault = FSRV_RUN_CRASH;
+        clear_exec_fail_sig(afl->fsrv.trace_bits);
+        break;
+      }
+
       pktlen = controller_recv(buzzer->mbuf, tmout_ms);
 
       if (pktlen == -2) {
@@ -381,6 +387,11 @@ havoc_stage:
 
     afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
 
+    if (unlikely(has_exec_fail_sig(afl->fsrv.trace_bits))) {
+      fault = FSRV_RUN_CRASH;
+      clear_exec_fail_sig(afl->fsrv.trace_bits);
+    }
+
     if (common_fuzz_stuff(afl, q, fault)) goto abandon_entry;
 
     /* If we're finding new stuff, let's run for a bit longer, limits
@@ -388,7 +399,7 @@ havoc_stage:
 
     if (afl->queued_items != havoc_queued) {
       if (perf_score <= afl->havoc_max_mult * 100) {
-        afl->stage_max *= 2;
+        afl->stage_max *= 1.1;
         perf_score *= 2;
       }
 

@@ -14,8 +14,10 @@ GHashTable *hci_rsp_map;
 GHashTable *hci_event_mask_map;
 GHashTable *hci_event_mask_page2_map;
 GHashTable *hci_le_event_mask_map;
+GHashTable *hci_event_blacklist_map;
+GHashTable *hci_le_event_blacklist_map;
 
-u8 event_mask[] = {
+u8 hci_event_mask[] = {
     /* 00 */ BT_HCI_EVT_INQUIRY_COMPLETE,
     /* 01 */ BT_HCI_EVT_INQUIRY_RESULT,
     /* 02 */ BT_HCI_EVT_CONN_COMPLETE,
@@ -88,7 +90,7 @@ u8 event_mask[] = {
     /* 62 */ 0,
     /* 63 */ 0};
 
-u8 event_mask_page2[] = {
+u8 hci_event_mask_page2[] = {
     /* 00 */ BT_HCI_EVT_PHY_LINK_COMPLETE,
     /* 01 */ BT_HCI_EVT_CHANNEL_SELECTED,
     /* 02 */ BT_HCI_EVT_DISCONN_PHY_LINK_COMPLETE,
@@ -161,7 +163,7 @@ u8 event_mask_page2[] = {
     /* 62 */ 0,
     /* 63 */ 0};
 
-u8 le_event_mask[] = {
+u8 hci_le_event_mask[] = {
     /* 00 */ BT_HCI_EVT_LE_CONN_COMPLETE,
     /* 01 */ BT_HCI_EVT_LE_ADV_REPORT,
     /* 02 */ BT_HCI_EVT_LE_CONN_UPDATE_COMPLETE,
@@ -213,11 +215,25 @@ u8 le_event_mask[] = {
 
 };
 
+u8 hci_event_blacklist[] = {
+    /**/ BT_HCI_EVT_CONN_COMPLETE,
+    /**/ BT_HCI_EVT_CONN_REQUEST,
+    /**/ BT_HCI_EVT_SYNC_CONN_COMPLETE,
+    /**/ BT_HCI_EVT_DISCONNECT_COMPLETE};
+
+u8 hci_le_event_blacklist[] = {
+    /**/ BT_HCI_EVT_LE_CONN_COMPLETE};
+
 static inline hci_cmd_format_t *new_hci_cmd_format(
-    uint16_t opcode, uint32_t size, uint32_t rsp_size, int offset1, int offset2,
-    int offset3, int offset4, int offset5) {
+    uint16_t opcode, uint32_t size, uint32_t rsp_size,
+    int offset1, /* Offset of BD_ADDR */
+    int offset2, /* offset of HCI_HANDLE */
+    int offset3, /* offset of STATUS (in response) */
+    int offset4, /* offset of BD_ADDR (in response) */
+    int offset5  /* offset of HCI_HANDLE (in response) */
+) {
   hci_cmd_format_t *fmt;
-  fmt = (hci_cmd_format_t *)malloc(sizeof(hci_cmd_format_t));
+  fmt = malloc(sizeof(hci_cmd_format_t));
   fmt->opcode = opcode;
   fmt->size = size;
   fmt->rsp_size = rsp_size;
@@ -229,11 +245,14 @@ static inline hci_cmd_format_t *new_hci_cmd_format(
   return fmt;
 }
 
-static inline hci_evt_format_t *new_hci_evt_format(bool le, uint16_t opcode,
-                                                   uint32_t size, int offset1,
-                                                   int offset2, int offset3) {
+static inline hci_evt_format_t *new_hci_evt_format(
+    bool le, uint16_t opcode, uint32_t size, 
+    int offset1, /* offset of STATUS */
+    int offset2, /* offset of BD_ADDR */
+    int offset3  /* offset of HANDLE */
+) {
   hci_evt_format_t *fmt;
-  fmt = (hci_evt_format_t *)malloc(sizeof(hci_evt_format_t));
+  fmt = malloc(sizeof(hci_evt_format_t));
   fmt->le = le;
   fmt->opcode = opcode;
   fmt->size = size;
@@ -292,6 +311,20 @@ void __ctor init_hci_formats(void) {
   hci_event_mask_map = g_hash_table_new(g_direct_hash, g_direct_equal);
   hci_event_mask_page2_map = g_hash_table_new(g_direct_hash, g_direct_equal);
   hci_le_event_mask_map = g_hash_table_new(g_direct_hash, g_direct_equal);
+  hci_event_blacklist_map = g_hash_table_new(g_direct_hash, g_direct_equal);
+  hci_le_event_blacklist_map = g_hash_table_new(g_direct_hash, g_direct_equal);
+
+  for (int i = 0; i < sizeof(hci_event_blacklist); ++i) {
+    g_hash_table_insert(hci_event_blacklist_map,
+                        GUINT_TO_POINTER(hci_event_blacklist[i]),
+                        GUINT_TO_POINTER(1));
+  }
+
+  for (int i = 0; i < sizeof(hci_le_event_blacklist); ++i) {
+    g_hash_table_insert(hci_le_event_blacklist_map,
+                        GUINT_TO_POINTER(hci_le_event_blacklist[i]),
+                        GUINT_TO_POINTER(1));
+  }
 
   DEF_CMD(0x401, 5, 0, -1, -1, -1, -1, -1);
   DEF_CMD(0x402, 0, 1, -1, -1, 0, -1, -1);
@@ -681,38 +714,39 @@ hci_evt_format_t *get_hci_le_evt_by_index(uint32_t index) {
 
 hci_evt_format_t *get_hci_iut_evt_by_index(uint32_t index) {
   if (index >= hci_iut_evts->len) return NULL;
-  return g_array_index(hci_iut_evts, hci_evt_format_t*, index);
+  return g_array_index(hci_iut_evts, hci_evt_format_t *, index);
 }
 
 hci_evt_format_t *get_hci_iut_le_evt_by_index(uint32_t index) {
   if (index >= hci_iut_le_evts->len) return NULL;
-  return g_array_index(hci_iut_le_evts, hci_cmd_format_t*, index);
+  return g_array_index(hci_iut_le_evts, hci_cmd_format_t *, index);
 }
 
 void update_event_mask_map(void) {
-  for (int i = 0; i < sizeof(event_mask); ++i) {
-    if (event_mask[i]) {
-      g_hash_table_insert(hci_event_mask_map, GUINT_TO_POINTER(event_mask[i]),
+  for (int i = 0; i < sizeof(hci_event_mask); ++i) {
+    if (hci_event_mask[i]) {
+      g_hash_table_insert(hci_event_mask_map,
+                          GUINT_TO_POINTER(hci_event_mask[i]),
                           GUINT_TO_POINTER(1));
     }
   }
 }
 
 void update_event_mask_page2_map(void) {
-  for (int i = 0; i < sizeof(event_mask_page2); ++i) {
-    if (event_mask_page2[i]) {
+  for (int i = 0; i < sizeof(hci_event_mask_page2); ++i) {
+    if (hci_event_mask_page2[i]) {
       g_hash_table_insert(hci_event_mask_page2_map,
-                          GUINT_TO_POINTER(event_mask_page2[i]),
+                          GUINT_TO_POINTER(hci_event_mask_page2[i]),
                           GUINT_TO_POINTER(1));
     }
   }
 }
 
 void update_le_event_mask_map(void) {
-  for (int i = 0; i < sizeof(le_event_mask); ++i) {
-    if (le_event_mask[i]) {
+  for (int i = 0; i < sizeof(hci_le_event_mask); ++i) {
+    if (hci_le_event_mask[i]) {
       g_hash_table_insert(hci_le_event_mask_map,
-                          GUINT_TO_POINTER(le_event_mask[i]),
+                          GUINT_TO_POINTER(hci_le_event_mask[i]),
                           GUINT_TO_POINTER(1));
     }
   }
@@ -723,8 +757,10 @@ void add_hci_iut_evt(uint8_t opcode) {
   if (!fmt) { FATAL("Unhandled event: 0x%x", opcode); }
   if (g_hash_table_lookup(hci_event_mask_map, GUINT_TO_POINTER(opcode)) ||
       g_hash_table_lookup(hci_event_mask_page2_map, GUINT_TO_POINTER(opcode))) {
-    OKF("Append %d", fmt->opcode);
-    g_array_append_val(hci_iut_evts, fmt);
+    if (!g_hash_table_lookup(hci_event_blacklist_map, GUINT_TO_POINTER(opcode))) {
+      OKF("Append %d", fmt->opcode);
+      g_array_append_val(hci_iut_evts, fmt);
+    }
   }
 }
 
@@ -732,18 +768,18 @@ void add_hci_iut_le_evt(uint8_t opcode) {
   hci_evt_format_t *fmt = get_hci_le_evt(opcode);
   if (!fmt) { FATAL("Unhandled LE Event: 0x%x", opcode); }
   if (g_hash_table_lookup(hci_le_event_mask_map, GUINT_TO_POINTER(opcode))) {
-        OKF("Append %d", fmt->opcode);
-
-    g_array_append_val(hci_iut_le_evts, fmt);
+    if (!g_hash_table_lookup(hci_le_event_blacklist_map,
+                             GUINT_TO_POINTER(opcode))) {
+      OKF("Append %d", fmt->opcode);
+      g_array_append_val(hci_iut_le_evts, fmt);
+    }
   }
 }
 
 void show_iut_evts(void) {
-  
 }
 
 void show_iut_le_evts(void) {
-
 }
 
 uint32_t hci_cmd_cnt(void) {

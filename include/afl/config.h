@@ -204,7 +204,7 @@
    In other words, the default (n = 4) produces 2, 4, 8, 16
    stacked tweaks: */
 
-#define HAVOC_STACK_POW2 4U
+#define HAVOC_STACK_POW2 8U
 
 /* Caps on block sizes for cloning and deletion operations. Each of these
    ranges has a 33% probability of getting picked, except for the first

@@ -8,6 +8,7 @@ extern "C" {
 #include "afl/debug.h"
 #include "panda/compiler.h"
 #include "panda/kernelinfo.h"
+#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -82,16 +83,17 @@ typedef struct __packed {
   uint32_t data[];
 } AnalyzeResult;
 
-#define BZ_PATH_MAX 512
 #define BZ_BUF_MAX 65536
 typedef struct buzzer_state {
   /* Fuzzer setup*/
   bool disable_le, disable_bredr;
-  char args[BZ_PATH_MAX];
-  char out_dir[BZ_PATH_MAX];
-  char target_dir[BZ_PATH_MAX];
-  char target_file[BZ_PATH_MAX];
-  char replay_path[BZ_PATH_MAX];
+  bool kernel_mode;
+  char args[PATH_MAX];
+  char out_dir[PATH_MAX];
+  char target_dir[PATH_MAX];
+  char target_file[PATH_MAX];
+  char replay_path[PATH_MAX];
+  char crash_message[PATH_MAX];
   bool enable_guest_print;
   bool enable_asan;
   bool no_ui;

@@ -43,7 +43,7 @@ typedef struct bt_state {
   _evt = (bt_hci_evt_hdr *)&_payload[1];                            \
   _evt->evt = _opc;                                                 \
   _evt->plen = _size;                                               \
-  evt_params = (_type *)_evt->params;
+  evt_params = (_type *)(void *)_evt->params;
 
 #define queue_entry_append_le_event(_q, _opc, _type, _size)         \
   u32             _total_size;                                      \

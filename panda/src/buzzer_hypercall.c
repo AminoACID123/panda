@@ -60,16 +60,20 @@ static void buzzer_handle_hypercall_print(CPUState *cpu) {
 }
 
 static void buzzer_handle_hypercall_panic(CPUState* cpu) {
-    // target_ulong str_addr = reg_arg0(cpu);
-    // target_ulong len = reg_arg1(cpu);
+    target_ulong str_addr = reg_arg0(cpu);
+    target_ulong len = reg_arg1(cpu);
     // message_t* message = mbuf_fuzz_recv();
     // message->size = len + 1;
     // message->data[len] = '\0';
+
+    if (len >= PATH_MAX) {
+        len = PATH_MAX - 1;
+    }
     
-    // bz_virtual_memory_read(cpu, str_addr, message->data, len);
+    bz_virtual_memory_read(cpu, str_addr, buzzer->crash_message, len);
+    buzzer->crash_message[len] = '\0';
     // buzzer_reset();
     // send_stat(STAT_RUN_CRASH);
-    
     
     set_exec_fail_sig(buzzer->shmem_trace);
 }
@@ -98,10 +102,12 @@ static void buzzer_handle_hypercall_req_harness_info(CPUState* cpu) {
     harness_state = (HarnessState*)calloc(harness_state_size, 1);
     harness_state->asan_enabled = buzzer->enable_asan;
     harness_state->device_no =  buzzer->device_no;
+    harness_state->kernel_mode = buzzer->kernel_mode;
 
-    if (buzzer->args)
+    if (buzzer->args) {
         strcpy(harness_state->argv, buzzer->args);
-
+    }
+    
     bool target_found = false;
     bool preload_found = false;
     for (int i = 0; i < nl_cnt; ++i) {

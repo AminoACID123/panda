@@ -24,6 +24,7 @@
  */
 
 #include "afl/afl-fuzz.h"
+#include "panda/buzzer.h"
 #include <limits.h>
 #if !defined NAME_MAX
   #define NAME_MAX _XOPEN_NAME_MAX
@@ -573,6 +574,10 @@ save_if_interesting(afl_state_t *afl, struct queue_entry* q, u8 fault) {
                afl->saved_crashes, afl->fsrv.last_kill_signal,
                describe_op(afl, 0, NAME_MAX - strlen("id:000000,sig:00,")));
 
+      char* crash_msg_fn = alloc_printf("%s_%s", fn, "message");
+      FILE* crash_msg_file = fopen(crash_msg_fn, "w");
+      fwrite(buzzer->crash_message, 1, strlen(buzzer->crash_message) + 1, crash_msg_file);
+      fclose(crash_msg_file);
 
       ++afl->saved_crashes;
 

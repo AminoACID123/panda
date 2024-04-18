@@ -38,9 +38,10 @@
 
 #define BZ_ENV_ASAN_ENABLED "ASAN_ENABLED"
 
-typedef struct {
+typedef struct __attribute__((packed)) {
   uint32_t num;
   uint8_t asan_enabled;
+  uint8_t kernel_mode;
   char argv[256];
   int device_no;
   struct HarnessFile {

@@ -34,6 +34,10 @@
 #define BT_H4_ISO_PKT	0x05
 #define BT_TMOUT 		0xFF
 
+#define LINK_TYPE_SCO	0
+#define LINK_TYPE_ACL	1
+#define LINK_TYPE_ESCO	2
+
 typedef struct __packed {
 	uint16_t opcode;
 	uint8_t  plen;
@@ -1263,6 +1267,11 @@ typedef struct __packed {
 	uint8_t  vnd_config_len;
 	uint8_t  vnd_config[0];
 } bt_hci_cmd_config_data_path;
+
+#define BT_HCI_CMD_SET_MIN_ENC_KEY_SIZE		0x0c84
+typedef struct __packed {
+	uint8_t min_size;
+} bt_hci_cmd_set_min_enc_key_size;
 
 #define BT_HCI_CMD_READ_LOCAL_VERSION		0x1001
 typedef struct __packed {

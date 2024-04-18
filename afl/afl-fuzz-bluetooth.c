@@ -67,7 +67,7 @@ void emit_discon_complete(afl_state_t *afl, queue_entry_t *q, u16 handle) {
 void emit_conn_request(afl_state_t *afl, queue_entry_t *q, u16 handle) {
   queue_entry_append_event(q, BT_HCI_EVT_CONN_REQUEST, bt_hci_evt_conn_request,
                            sizeof(bt_hci_evt_conn_request));
-  evt_params->link_type = 1;
+  evt_params->link_type = LINK_TYPE_ACL;
   memcpy(evt_params->bdaddr, bd_addr_remote, 6);
   rand_bytes(afl, evt_params->dev_class, sizeof(evt_params->dev_class));
   emit_message(afl, q, q->message_cnt - 1);
@@ -84,7 +84,7 @@ void emit_conn_complete(afl_state_t *afl, queue_entry_t *q, u16 handle,
     evt_params->handle = handle;
     evt_params->status = status;
     evt_params->encr_mode = rand_below(afl, 3);
-    evt_params->link_type = rand_below(afl, 3);
+    evt_params->link_type = LINK_TYPE_ACL;
 
   } else {
     queue_entry_append_le_event(q, BT_HCI_EVT_LE_CONN_COMPLETE,
@@ -118,8 +118,9 @@ u8 is_link_change_event(message_t *message) {
     bt_hci_evt_hdr *evt = (bt_hci_evt_hdr *)&message->data[1];
     if (evt->evt == BT_HCI_EVT_CONN_COMPLETE ||
         evt->evt == BT_HCI_EVT_DISCONNECT_COMPLETE ||
-        evt->evt == BT_HCI_EVT_CONN_REQUEST)
+        evt->evt == BT_HCI_EVT_CONN_REQUEST) {
       return true;
+    }
     if (evt->evt == BT_HCI_EVT_LE_META_EVENT) {
       if (evt->params[0] == BT_HCI_EVT_LE_CONN_COMPLETE) { return true; }
     }
@@ -219,6 +220,7 @@ void emit_event_random(afl_state_t *afl, queue_entry_t *q) {
   u32               le_evt_cnt = hci_iut_le_evt_cnt();
   hci_evt_format_t *fmt;
 
+select_event:
   if (!buzzer->disable_bredr && !buzzer->disable_le) {
     r = rand_below(afl, 2);
     if (r == 0) {
@@ -238,7 +240,6 @@ void emit_event_random(afl_state_t *afl, queue_entry_t *q) {
     fmt = get_hci_iut_le_evt_by_index(r);
   }
 
-  OKF("%d", r);
   emit_event_from_format(afl, q, fmt);
 }
 
@@ -251,7 +252,6 @@ void emit_l2cap_sig(afl_state_t *afl, queue_entry_t *q, u16 handle, u16 cid,
   l2cap_params->len = size;
   memcpy(l2cap_params->data, payload, size);
   emit_message(afl, q, q->message_cnt - 1);
-
   emit_num_completed_packets(afl, q, handle);
 }
 
@@ -795,10 +795,8 @@ static void handle_set_event_mask(afl_state_t *afl, queue_entry_t *q,
   bt_hci_cmd_set_event_mask *cmd = (void *)cmd_hdr->params;
   for (int i = 0; i < 8; ++i) {
     u8 mask = cmd->mask[i];
-    for (int j = 0; j < 8; ++j){
-      if (!((mask >> j) & 0x1)) {
-        event_mask[i * 8 + j] = 0;
-      }
+    for (int j = 0; j < 8; ++j) {
+      if (!((mask >> j) & 0x1)) { hci_event_mask[i * 8 + j] = 0; }
     }
   }
   emit_cmd_complete_success(afl, q, cmd_hdr->opcode);
@@ -810,10 +808,8 @@ static void handle_set_event_mask_page2(afl_state_t *afl, queue_entry_t *q,
   bt_hci_cmd_set_event_mask_page2 *cmd = (void *)cmd_hdr->params;
   for (int i = 0; i < 8; ++i) {
     u8 mask = cmd->mask[i];
-    for (int j = 0; j < 8; ++j){
-      if (!((mask >> j) & 0x1)) {
-        event_mask_page2[i * 8 + j] = 0;
-      }
+    for (int j = 0; j < 8; ++j) {
+      if (!((mask >> j) & 0x1)) { hci_event_mask_page2[i * 8 + j] = 0; }
     }
   }
   emit_cmd_complete_success(afl, q, cmd_hdr->opcode);
@@ -835,6 +831,17 @@ static void handle_le_read_buffer_size(afl_state_t *afl, queue_entry_t *q,
   rsp.status = BT_HCI_ERR_SUCCESS;
   rsp.le_max_pkt = 10;
   rsp.le_mtu = 0xFFFF;
+  emit_cmd_complete(afl, q, cmd_hdr->opcode, &rsp, sizeof(rsp));
+}
+
+static void handle_le_read_buffer_size_v2(afl_state_t *afl, queue_entry_t *q,
+                                          bt_hci_cmd_hdr *cmd_hdr) {
+  bt_hci_rsp_le_read_buffer_size_v2 rsp;
+  rsp.status = BT_HCI_ERR_SUCCESS;
+  rsp.acl_mtu = 0xFFFF;
+  rsp.acl_max_pkt = 10;
+  rsp.iso_mtu = 0;
+  rsp.iso_max_pkt = 0;
   emit_cmd_complete(afl, q, cmd_hdr->opcode, &rsp, sizeof(rsp));
 }
 
@@ -875,10 +882,8 @@ static void handle_le_set_event_mask(afl_state_t *afl, queue_entry_t *q,
   bt_hci_cmd_le_set_event_mask *cmd = (void *)cmd_hdr->params;
   for (int i = 0; i < 8; ++i) {
     u8 mask = cmd->mask[i];
-    for (int j = 0; j < 8; ++j){
-      if (!((mask >> j) & 0x1)) {
-        le_event_mask[i * 8 + j] = 0;
-      }
+    for (int j = 0; j < 8; ++j) {
+      if (!((mask >> j) & 0x1)) { hci_le_event_mask[i * 8 + j] = 0; }
     }
   }
   emit_cmd_complete_success(afl, q, cmd_hdr->opcode);
@@ -976,6 +981,10 @@ static u8 handle_command_prio(afl_state_t *afl, queue_entry_t *q,
 
     case BT_HCI_CMD_LE_READ_BUFFER_SIZE:
       handle_le_read_buffer_size(afl, q, cmd);
+      return 1;
+
+    case BT_HCI_CMD_LE_READ_BUFFER_SIZE_V2:
+      handle_le_read_buffer_size_v2(afl, q, cmd);
       return 1;
 
     case BT_HCI_CMD_LE_READ_SUPPORTED_STATES:
@@ -1255,10 +1264,11 @@ void bt_state_update_from_evt(bt_state_t *bt, bt_hci_evt_hdr *evt) {
     case BT_HCI_EVT_CONN_COMPLETE:
       bt_hci_evt_conn_complete *cc;
       cc = (bt_hci_evt_conn_complete *)evt->params;
-      if (cc->status == BT_HCI_ERR_SUCCESS)
+      if (cc->status == BT_HCI_ERR_SUCCESS) {
         hci_conn_set_state(bt->bredr_conn, CONNECTED);
-      else
+      } else {
         hci_conn_set_state(bt->bredr_conn, DISCONNECTED);
+      }
       break;
 
     case BT_HCI_EVT_DISCONNECT_COMPLETE:
@@ -1269,10 +1279,11 @@ void bt_state_update_from_evt(bt_state_t *bt, bt_hci_evt_hdr *evt) {
 
     case BT_HCI_EVT_LE_META_EVENT:
       if (evt->params[0] == BT_HCI_EVT_LE_CONN_COMPLETE) {
-        if (evt->params[0] == BT_HCI_ERR_SUCCESS)
+        if (evt->params[0] == BT_HCI_ERR_SUCCESS) {
           hci_conn_set_state(bt->le_conn, CONNECTED);
-        else
+        } else {
           hci_conn_set_state(bt->le_conn, DISCONNECTED);
+        }
       }
 
     default:
@@ -1383,8 +1394,7 @@ void bt_state_simulate(bt_state_t *bt, queue_entry_t *q) {
 
 void enumerate_event(afl_state_t *afl, struct queue_entry *q, u8 opcode,
                      u32 size) {
-  memcpy(buzzer->shmem_trace_child, buzzer->shmem_trace_mother,
-         afl->fsrv.map_size);
+  memcpy(afl->fsrv.trace_bits, afl->fsrv.trace_bits_mother, afl->fsrv.map_size);
 
   queue_entry_clear_messages(q);
   // fmt->opcode = 0x0F;
@@ -1408,12 +1418,13 @@ void enumerate_event(afl_state_t *afl, struct queue_entry *q, u8 opcode,
     OKF("0x%02x", opcode);
     add_hci_iut_evt(opcode);
   }
+
+  clear_exec_fail_sig(afl->fsrv.trace_bits);
 }
 
 void enumerate_le_event(afl_state_t *afl, struct queue_entry *q, u8 opcode,
                         u32 size) {
-  memcpy(buzzer->shmem_trace_child, buzzer->shmem_trace_mother,
-          afl->fsrv.map_size);
+  memcpy(afl->fsrv.trace_bits, afl->fsrv.trace_bits_mother, afl->fsrv.map_size);
 
   queue_entry_clear_messages(q);
 
@@ -1437,14 +1448,15 @@ void enumerate_le_event(afl_state_t *afl, struct queue_entry *q, u8 opcode,
     OKF("0x%02x", opcode);
     add_hci_iut_le_evt(opcode);
   }
+
+  clear_exec_fail_sig(afl->fsrv.trace_bits);
 }
 
 void dry_run_event(afl_state_t *afl, struct queue_entry *q, u8 opcode,
                    u32 size) {
   queue_entry_clear_messages(q);
 
-  memcpy(afl->fsrv.trace_bits, afl->fsrv.trace_bits_mother,
-          afl->fsrv.map_size);
+  memcpy(afl->fsrv.trace_bits, afl->fsrv.trace_bits_mother, afl->fsrv.map_size);
 
   queue_entry_append_event(q, opcode, u8, size);
 
@@ -1578,7 +1590,8 @@ static void save_pklg_internal(afl_state_t *afl, char *dir_in) {
 
     if (lstat(fn_in, &st) || access(fn_in, R_OK)) { continue; }
 
-    if (!S_ISREG(st.st_mode) || !st.st_size || strstr(fn_in, "/README.txt")) {
+    if (!S_ISREG(st.st_mode) || !st.st_size || strstr(fn_in, "/README.txt") ||
+        strstr(fn_in, "_message")) {
       continue;
     }
 

@@ -3373,11 +3373,19 @@ STEXI
 Set the directory to store fuzz output.
 ETEXI
 
-DEF("replay_path", HAS_ARG, QEMU_OPTION_replay_path, \
-    "-replay_path      pklg file path to perform replay\n", QEMU_ARCH_ALL)
+DEF("bt-type", HAS_ARG, QEMU_OPTION_bt_type, \
+    "-bt-type type of the target Bluetooth stack\n", QEMU_ARCH_ALL)
 STEXI
-@item -replay_path @var{str}
-@findex -replay_path
+@item -bt-type @var{str}
+@findex -bt-type
+Set the type of the target Bluetooth stack.
+ETEXI
+
+DEF("replay-path", HAS_ARG, QEMU_OPTION_replay_path, \
+    "-replay-path      pklg file path to perform replay\n", QEMU_ARCH_ALL)
+STEXI
+@item -replay-path @var{str}
+@findex -replay-path
 Set pklg file path to perform replay.
 ETEXI
 

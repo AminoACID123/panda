@@ -89,11 +89,20 @@ int attach_device(void);
 int attach_device(void)
 {
 	int fd, ret;
+	unsigned long flags;
 	char* dev_path = alloc_printf("/dev/ttyS%d", harness_state.device_no);
+
 	bz_print("Opening HCI device: %s", dev_path);
+
 	fd = open_serial(dev_path);
 
-    ret = ioctl(fd, HCIUARTSETFLAGS, 1 << HCI_UART_RAW_DEVICE);
+	if (harness_state.kernel_mode) {
+		flags = 1 << HCI_UART_RESET_ON_INIT;
+	} else {
+		flags = 1 << HCI_UART_RAW_DEVICE;
+	}
+
+    ret = ioctl(fd, HCIUARTSETFLAGS, flags);
     FATAL(ret < 0, "Failed to set flags\n");
 
     ret = ioctl(fd, HCIUARTSETPROTO, HCI_UART_H4);
