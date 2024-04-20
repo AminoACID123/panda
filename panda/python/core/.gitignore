@@ -1,0 +1,10 @@
+*-rr-snp
+*.plog
+*.recording
+build
+dist
+pandare.egg-info
+data
+a
+__pycache__
+*.egg-info

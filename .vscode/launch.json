@@ -1,0 +1,57 @@
+{
+    "configurations": [
+        {
+            "name": "C/C++: gcc-11 build and debug active file",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/x86_64-softmmu/buzzer-fuzz",
+            "args": [
+                "-args",
+                "--bt-dev=hci0",
+                "-m",
+                "512M",
+                "-kernel",
+                "~/Documents/panda-work/BlueBench/os/linux/kernel/linux-6.7/arch/x86/boot/bzImage",
+                "-initrd",
+                "~/Documents/panda-work/BlueBench/os/linux/initramfs/init.cpio.gz",
+                "-append",
+                "\"nokaslr\"", 
+                "-chardev",
+                "buzzer,id=bz",
+                "-serial",
+                "chardev:bz",
+                "-target-file",
+                "gatt_counter",
+                "-target-dir",
+                "/home/xaz/Documents/panda-work/BlueBench/targets/btstack/test",
+                "-out",
+                "out_btstack",
+                "-display",
+                "none",
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build/x86_64-softmmu",
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                },
+                // {
+                //     "description": "Set Disassembly Flavor to Intel",
+                //     "text": "-gdb-set follow-fork-mode child",
+                //     "ignoreFailures": true
+                // }
+            ],
+            "miDebuggerPath": "/usr/bin/gdb"
+        }
+    ],
+    "version": "2.0.0"
+}
