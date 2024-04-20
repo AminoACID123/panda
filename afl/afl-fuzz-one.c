@@ -75,6 +75,9 @@ u8 fuzz_one_original(afl_state_t *afl) {
 
   struct queue_entry *q = afl->queue_tmp;
 
+  bt_state_t bt_state;
+  bt_state_init(&bt_state);
+
   if (likely(afl->pending_favored)) {
     /* If we have any favored, non-fuzzed new arrivals in the queue,
        possibly skip to them at the expense of already-fuzzed or non-favored
@@ -111,6 +114,8 @@ u8 fuzz_one_original(afl_state_t *afl) {
   q->mother = afl->queue_cur;
 
   fsrv_created = perform_dry_run(afl, afl->queue_cur);
+
+  bt_state_copy(&bt_state, &afl->bt_state);
 
   if (unlikely(!fsrv_created)) goto abandon_entry;
 
@@ -308,6 +313,8 @@ havoc_stage:
   for (afl->stage_cur = 0; afl->stage_cur < afl->stage_max; ++afl->stage_cur) {
     memcpy(afl->fsrv.trace_bits, afl->fsrv.trace_bits_mother,
            afl->fsrv.map_size);
+
+    bt_state_copy(&afl->bt_state, &bt_state);
 
     queue_entry_clear_messages(q);
 
