@@ -122,7 +122,9 @@ void download_files(void) {
 	FILE* file = NULL;
 	uint8_t* data_buffer = NULL;
 
+	bz_print("Requesting harness info...");
 	bz_req_harness_info((uintptr_t)&harness_state);
+	bz_print("Received harness info");
 
 	for (int i = 0 ; i < harness_state.num; ++i) {
 		uint32_t size = harness_state.files[i].size;
