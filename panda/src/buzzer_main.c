@@ -126,7 +126,7 @@ void __hot controller_send(uint8_t* buf, int len)
 
 int __hot controller_recv(uint8_t* buf, int tmout_ms)
 {
-    int sret, fd;
+    int ret, fd;
     fd_set fdset;
     struct timeval timeout;
 
@@ -138,17 +138,70 @@ int __hot controller_recv(uint8_t* buf, int tmout_ms)
     timeout.tv_usec = (tmout_ms % 1000) * 1000;
 
     do {
-        sret = select(fd + 1, &fdset, NULL, NULL, &timeout);
-    } while (sret < 0 && errno == EINTR);
+        ret = select(fd + 1, &fdset, NULL, NULL, &timeout);
+    } while (ret < 0 && errno == EINTR);
 
-    if (sret == 0) {
+    if (ret == 0) {
         return -2;
     }
-    else if (unlikely(sret == -1)) {
-        FATAL("Select fail: %s", strerror(errno));
+    else if (unlikely(ret == -1)) {
+        PFATAL("Controller wait failed");
     }
 
-    return read(fd, buf, BZ_BUF_MAX);
+    ret = read(fd, buf, BZ_BUF_MAX);
+
+    if (unlikely(ret < 0)) {
+        PFATAL("Controller recv failed");
+    }
+
+    return ret;
+}
+
+int __hot controller_recv_ack(int tmout_ms)
+{
+    int ret, fd, ack;
+    fd_set fdset;
+    struct timeval timeout;
+
+    fd = buzzer->stat_pipe[0];
+    FD_ZERO(&fdset);
+    FD_SET(fd, &fdset);
+
+    timeout.tv_sec = (tmout_ms / 1000);
+    timeout.tv_usec = (tmout_ms % 1000) * 1000;
+
+    do {
+        ret = select(fd + 1, &fdset, NULL, NULL, &timeout);
+    } while (ret < 0 && errno == EINTR);
+
+    if (ret == 0) {
+        return -2;
+    }
+    else if (unlikely(ret == -1)) {
+        PFATAL("Controller wait failed");
+    }
+
+    ret = read(fd, &ack, sizeof(ack));
+
+    if (unlikely(ret < 0)) {
+        PFATAL("Controller recv failed");
+    }
+
+    return ack;
+}
+
+int __hot controller_recv_nowait(uint8_t* buf) {
+    int ret, fd;
+ 
+    fd = buzzer->h2c_data_pipe[0];
+
+    ret = read(fd, buf, BZ_BUF_MAX);
+
+    if (ret < 0) {
+        PFATAL("Controller recv failed");
+    }
+
+    return ret;
 }
 
 void __hot controller_recv_drain(uint8_t *buf)

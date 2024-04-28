@@ -556,8 +556,8 @@ void add_to_queue(afl_state_t *afl, char *fname, u32 len, u8 passed_det) {
   q->depth = afl->cur_depth + 1;
   q->passed_det = passed_det;
   q->trace_mini = NULL;
-  q->bt_state.le_conn = &q->bt_state.conns[LE_HANDLE];
-  q->bt_state.bredr_conn = &q->bt_state.conns[BREDR_HANDLE];
+  // q->bt_state.le_conn = &q->bt_state.conns[LE_HANDLE];
+  // q->bt_state.bredr_conn = &q->bt_state.conns[BREDR_HANDLE];
 
   if (q->depth > afl->max_depth) { afl->max_depth = q->depth; }
 

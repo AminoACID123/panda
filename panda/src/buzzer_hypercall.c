@@ -1,6 +1,7 @@
 
 #include "qemu/osdep.h"
 #include "qemu/typedefs.h"
+#include "block/aio.h"
 
 #include "afl/afl-fuzz.h"
 #include "afl/debug.h"
@@ -46,8 +47,12 @@ static void buzzer_handle_hypercall_recv(CPUState* cpu) {
     printf("Bluetooth host is wants to receive data\n");
 }
 
-static void buzzer_handle_hypercall_wait(CPUState* cpu) {
-    printf("Bluetooth host is waiting for data\n");
+static void buzzer_handle_hypercall_ack(CPUState* cpu) {
+    // aio_bh_schedule_oneshot(qemu_get_aio_context(), send_ack, NULL);
+    target_ulong level = reg_arg0(cpu);
+    target_ulong packets = reg_arg1(cpu);
+    int n = (level << 16) | packets;
+    send_stat(n);
 }
 
 static void buzzer_handle_hypercall_print(CPUState *cpu) {
@@ -203,8 +208,8 @@ bool buzzer_callback_hypercall(void* cpu) {
         buzzer_handle_hypercall_recv(cpu);
         return true;
 
-    case BZ_HYPERCALL_WAIT:
-        buzzer_handle_hypercall_wait(cpu);
+    case BZ_HYPERCALL_ACK:
+        buzzer_handle_hypercall_ack(cpu);
         return true;
 
     case BZ_HYPERCALL_PRINT:

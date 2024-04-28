@@ -3,9 +3,10 @@
 
 #include "afl/types.h"
 
-#define LE_HANDLE 0
-#define BREDR_HANDLE 1
-#define MAX_CIDS 20
+#define LE_HANDLE       0
+#define BREDR_HANDLE    1
+#define INVALID_HANDLE  0xFF
+#define MAX_CIDS        20
 
 enum {
   DISCONNECTED = 0,

@@ -9,8 +9,8 @@
 // The Bluetooth Host wants to recv something
 #define BZ_HYPERCALL_RECV 21
 
-// The Bluetooth Host is waiting for packet
-#define BZ_HYPERCALL_WAIT 22
+// The Bluetooth Host has finished processing incoming packet
+#define BZ_HYPERCALL_ACK 22
 
 // Print something
 #define BZ_HYPERCALL_PRINT 23
@@ -195,10 +195,10 @@ static inline void bz_hypercall(uintptr_t eax, uintptr_t ebx, uintptr_t ecx,
     _ret;                                                                      \
   })
 
-#define bz_wait()                                                              \
+#define bz_ack(_level, _packets)                                               \
   ({                                                                           \
     uintptr_t _ret = 0;                                                        \
-    bz_hypercall_0(WAIT);                                                      \
+    bz_hypercall_2(ACK, _level, _packets);                                     \
     _ret;                                                                      \
   })
 

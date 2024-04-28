@@ -21,7 +21,7 @@ void rand_set_seed(afl_state_t *afl, s64 init_seed) {
 
 #ifdef WORD_SIZE_64
 // romuDuoJr
-inline AFL_RAND_RETURN rand_next(afl_state_t *afl) {
+inline AFL_RAND_RETURN __attribute__((hot)) rand_next(afl_state_t *afl) {
 
   AFL_RAND_RETURN xp = afl->rand_seed[0];
   afl->rand_seed[0] = 15241094284759029579u * afl->rand_seed[1];

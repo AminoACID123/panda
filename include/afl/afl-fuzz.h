@@ -209,7 +209,6 @@ typedef struct queue_entry {
 
   struct queue_entry *mother;           /* queue entry this based on        */
   struct queue_entry *prefix;
-  bt_state_t          bt_state;
   u8                  loaded;
 
 } queue_entry_t;
@@ -803,6 +802,7 @@ typedef struct afl_state {
   u32 iut_le_evt_cnt;
   u8 message_emitted;
   u8 hci_reset_handled;
+  s32 messages_rcvd;
 
   FILE* rt_log;
 
@@ -1355,11 +1355,11 @@ void emit_event_from_format(afl_state_t *, struct queue_entry *, hci_evt_format_
 void emit_event(afl_state_t *, struct queue_entry *, u8, void *, u32);
 void emit_event_random(afl_state_t *, struct queue_entry *);
 void emit_l2cap_sig(afl_state_t *, struct queue_entry *, u16, u16, u8, u8, void *, u32); 
-void emit_l2cap_sig_random(afl_state_t *, struct queue_entry *);
+void emit_l2cap_sig_random(afl_state_t *, struct queue_entry *, u16);
 void emit_smp(afl_state_t *, struct queue_entry *, u16, u16, u8, void *, u32);
-void emit_smp_random(afl_state_t *, struct queue_entry *);
+void emit_smp_random(afl_state_t *, struct queue_entry *, u16);
 void emit_att(afl_state_t *, struct queue_entry *, u16, u8, void *, u32);
-void emit_att_random(afl_state_t *, struct queue_entry *);
+void emit_att_random(afl_state_t *, struct queue_entry *, u16);
 void emit_message_random(afl_state_t *, struct queue_entry *);
 
 void enumerate_event(afl_state_t *, struct queue_entry *, u8, u32);
@@ -1421,6 +1421,7 @@ u8 handle_acl(afl_state_t *, struct queue_entry *, bt_hci_acl_hdr *);
 u8 handle_command(afl_state_t *, struct queue_entry *, bt_hci_cmd_hdr *);
 u8 handle_message(afl_state_t *, struct queue_entry *, uint8_t*, u32);
 u8 recv_message(afl_state_t *, struct queue_entry *, u8);
+int recv_messages(afl_state_t *, queue_entry_t *, u8);
 
 void handle_iut_initialization(afl_state_t *);
 

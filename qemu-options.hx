@@ -3357,6 +3357,14 @@ STEXI
 Disable AFL UI
 ETEXI
 
+DEF("no-ack", 0, QEMU_OPTION_no_ack, \
+    "-no-ack     no ack for packets sent by controller\n", QEMU_ARCH_ALL)
+STEXI
+@item -no-ack
+@findex -no-ack
+No ack for packets sent by controller
+ETEXI
+
 DEF("args", HAS_ARG, QEMU_OPTION_args, \
     "-args      arguments passed to buzzer target\n", QEMU_ARCH_ALL)
 STEXI

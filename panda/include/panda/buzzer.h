@@ -96,7 +96,7 @@ typedef struct buzzer_state {
   char crash_message[PATH_MAX];
   bool enable_guest_print;
   bool enable_asan;
-  bool no_ui;
+  bool no_ui, no_ack;
   int device_no;
 
   /* Runtime */
@@ -149,6 +149,8 @@ void buzzer_reset(void);
 
 void controller_send(uint8_t* buf, int len);
 int controller_recv(uint8_t* buf, int tmout_ms);
+int controller_recv_ack(int tmout_ms);
+int controller_recv_nowait(uint8_t *buf);
 void controller_recv_drain(uint8_t *buf);
 void host_send(uint8_t* buf, int len);
 int host_recv(uint8_t* buf, int tmout_ms);
@@ -163,26 +165,26 @@ uint64_t shm_hash_map_lookup_value(void* opaque, uint32_t value);
 #define send_ctrl(_ctrl)                                                       \
   do {                                                                         \
     int __ctrl = _ctrl;                                                        \
-    write(buzzer->ctrl_pipe[1], &__ctrl, sizeof(__ctrl));                             \
+    write(buzzer->ctrl_pipe[1], &__ctrl, sizeof(__ctrl));                      \
   } while (0);
 
 #define recv_ctrl()                                                            \
   ({                                                                           \
     int _ctrl;                                                                 \
-    read(buzzer->ctrl_pipe[0], &_ctrl, sizeof(_ctrl));                                 \
+    read(buzzer->ctrl_pipe[0], &_ctrl, sizeof(_ctrl));                         \
     _ctrl;                                                                     \
   })
 
 #define send_stat(_stat)                                                       \
   do {                                                                         \
     int __stat = _stat;                                                        \
-    write(buzzer->stat_pipe[1], &__stat, sizeof(__stat));                             \
+    write(buzzer->stat_pipe[1], &__stat, sizeof(__stat));                      \
   } while (0);
 
 #define recv_stat()                                                            \
   ({                                                                           \
     int _stat;                                                                 \
-    read(buzzer->stat_pipe[0], &_stat, sizeof(_stat));                                 \
+    read(buzzer->stat_pipe[0], &_stat, sizeof(_stat));                         \
     _stat;                                                                     \
   })
 
