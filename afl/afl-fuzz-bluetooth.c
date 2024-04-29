@@ -22,8 +22,8 @@ void emit_message(afl_state_t *afl, queue_entry_t *q, u32 i) {
   afl->message_emitted = 1;
 
   if (!buzzer->no_ack) {
-    ack = controller_recv_ack(100);
-    if (ack == -2){
+    ack = controller_recv_ack(BZ_TMOUT_MS);
+    if (unlikely(ack == -2)) {
        afl->messages_rcvd = -1;
     }
     else {
@@ -1202,7 +1202,8 @@ int recv_messages(afl_state_t *afl, queue_entry_t *q, u8 append) {
   if (!buzzer->no_ack) {
     n = afl->messages_rcvd;
     for (int i = 0; i < n; ++i) {
-      pktlen = controller_recv(buzzer->mbuf, 10000000);
+      pktlen = controller_recv(buzzer->mbuf, BZ_TMOUT_MS);
+      if (pktlen == -2) { break; }
       if (append) {
         queue_entry_append_message_recv(q, buzzer->mbuf, pktlen);
       }
@@ -1220,6 +1221,9 @@ int recv_messages(afl_state_t *afl, queue_entry_t *q, u8 append) {
       n++;
     }
   }
+
+  afl->messages_rcvd = n;
+
   return n;
 }
 

@@ -299,10 +299,6 @@ havoc_stage:
 
     q->subseq_tmouts = 0;
 
-    if (afl->stats_avg_exec > 60) {
-      WARNF("Exec speed abnormal");
-    }
-  
     i = 0;
 
     tmout_ms = BZ_TMOUT_MS;
@@ -311,15 +307,18 @@ havoc_stage:
 
     while (i < use_stacking) {
 
-      if (unlikely(has_exec_fail_sig(afl->fsrv.trace_bits))) {
+      if (unlikely(afl->messages_rcvd == -1 || 
+           has_exec_fail_sig(afl->fsrv.trace_bits))) {
         fault = FSRV_RUN_CRASH;
+        afl->messages_rcvd = 0;
         clear_exec_fail_sig(afl->fsrv.trace_bits);
         break;
       }
 
-      pktlen = controller_recv(buzzer->mbuf, tmout_ms);
+      // pktlen = controller_recv(buzzer->mbuf, tmout_ms);
+      n = recv_messages(afl, q, 1);
 
-      if (pktlen == -2) {
+      if (n == 0) {
         q->subseq_tmouts++;
 
         if (q->subseq_tmouts + q->mother->subseq_tmouts >= TMOUT_LIMIT) {
@@ -327,45 +326,25 @@ havoc_stage:
           break;
         }
 
+        afl->messages_rcvd = 0;
         emit_message_random(afl ,q);
 
         ++i;
       }
       else {
-
-        queue_entry_append_message_recv(q, buzzer->mbuf, pktlen);
-
-        ignored = handle_message(afl, q, buzzer->mbuf, pktlen);
-
-        if (!ignored) ++i;
+        afl->messages_rcvd = 0;
+        for (j = q->message_cnt - n; j < q->message_cnt; ++j) {
+          ignored = handle_message(afl, q, q->messages[j]->data, q->messages[j]->size);
+          if (!ignored) ++i;
+        }
       }
     }
 
-
-    // for (int i = 0; i < use_stacking; ++i) {
-    //   fault = recv_message(afl, q, 1);
-
-    //   if (fault == FSRV_RUN_TMOUT) {
-    //     emit_message_random(afl, q);
-    //     q->subseq_tmouts++;
-    //     if (q->subseq_tmouts + q->mother->subseq_tmouts >= TMOUT_LIMIT) {
-    //       fault = FSRV_RUN_TMOUT;
-    //       break;
-    //     }
-    //   }
-    //   else if (unlikely(fault == FSRV_RUN_CRASH)) {
-    //     break;
-    //   }
-    //   else {
-    //     q->subseq_tmouts = 0;
-    //   }
-    // }
-  
     controller_recv_drain(buzzer->mbuf);
 
     afl_fsrv_pop_child(&afl->fsrv, send_ctrl_exit());
 
-    if (unlikely(has_exec_fail_sig(afl->fsrv.trace_bits))) {
+    if (unlikely(afl->messages_rcvd == -1 || has_exec_fail_sig(afl->fsrv.trace_bits))) {
       fault = FSRV_RUN_CRASH;
       clear_exec_fail_sig(afl->fsrv.trace_bits);
     }
@@ -383,6 +362,9 @@ havoc_stage:
 
       havoc_queued = afl->queued_items;
     }
+
+    afl->messages_rcvd = 0;
+
   }
 
   // ACTF("Exit fsrv");

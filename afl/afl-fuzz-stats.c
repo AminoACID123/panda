@@ -905,19 +905,19 @@ void show_stats_normal(afl_state_t *afl) {
 
   /* Show a warning about slow execution. */
 
-  if (afl->stats_avg_exec < 100) {
+  // if (afl->stats_avg_exec < 100) {
 
-    sprintf(tmp, "%s/sec (%s)", u_stringify_float(IB(0), afl->stats_avg_exec),
-            afl->stats_avg_exec < 20 ? "zzzz..." : "slow!");
+  //   sprintf(tmp, "%s/sec (%s)", u_stringify_float(IB(0), afl->stats_avg_exec),
+  //           afl->stats_avg_exec < 20 ? "zzzz..." : "slow!");
 
-    SAYF(bV bSTOP "  exec speed : " cLRD "%-22s ", tmp);
+  //   SAYF(bV bSTOP "  exec speed : " cLRD "%-22s ", tmp);
 
-  } else {
+  // } else {
 
     sprintf(tmp, "%s/sec", u_stringify_float(IB(0), afl->stats_avg_exec));
     SAYF(bV bSTOP "  exec speed : " cRST "%-22s ", tmp);
 
-  }
+  // }
 
   sprintf(tmp, "%s (%s%s saved)", u_stringify_int(IB(0), afl->total_tmouts),
           u_stringify_int(IB(1), afl->saved_tmouts),

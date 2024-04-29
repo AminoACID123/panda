@@ -29,8 +29,8 @@
                 "-display",
                 "none",
                 "-enable-asan",
-                "-no-ui",
-                "-enable-guest-print"
+                // "-no-ui",
+                // "-enable-guest-print"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/x86_64-softmmu",
