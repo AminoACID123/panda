@@ -96,7 +96,7 @@ void emit_discon_complete(afl_state_t *afl, queue_entry_t *q, u16 handle) {
 void emit_conn_request(afl_state_t *afl, queue_entry_t *q, u16 handle) {
   queue_entry_append_event(q, BT_HCI_EVT_CONN_REQUEST, bt_hci_evt_conn_request,
                            sizeof(bt_hci_evt_conn_request));
-  evt_params->link_type = LINK_TYPE_ACL;
+  evt_params->link_type = BT_LINK_TYPE_ACL;
   memcpy(evt_params->bdaddr, bd_addr_remote, 6);
   rand_bytes(afl, evt_params->dev_class, sizeof(evt_params->dev_class));
   emit_message(afl, q, q->message_cnt - 1);
@@ -113,7 +113,7 @@ void emit_conn_complete(afl_state_t *afl, queue_entry_t *q, u16 handle,
     evt_params->handle = handle;
     evt_params->status = status;
     evt_params->encr_mode = rand_below(afl, 3);
-    evt_params->link_type = LINK_TYPE_ACL;
+    evt_params->link_type = BT_LINK_TYPE_ACL;
   } 
   else {
     queue_entry_append_le_event(q, BT_HCI_EVT_LE_CONN_COMPLETE,
