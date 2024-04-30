@@ -34,9 +34,60 @@
 #define BT_H4_ISO_PKT	0x05
 #define BT_TMOUT 		0xFF
 
-#define LINK_TYPE_SCO	0
-#define LINK_TYPE_ACL	1
-#define LINK_TYPE_ESCO	2
+#define BT_LINK_TYPE_SCO	0
+#define BT_LINK_TYPE_ACL	1
+#define BT_LINK_TYPE_ESCO	2
+#define BT_LINK_TYPE_MAX	3
+
+#define BT_ADDR_TYPE_PUBLIC				0x00
+#define BT_ADDR_TYPE_RANDOM 			0x01
+#define BT_ADDR_TYPE_PUBLIC_IDENT		0x02
+#define BT_ADDR_TYPE_RANDOM_IDENT		0x03
+#define BT_ADDR_TYPE_MAX				0x04
+
+#define	BT_ADV_TYPE_ADV_IND 			0x00
+#define	BT_ADV_TYPE_ADV_DIRECT_IND  	0x01
+#define	BT_ADV_TYPE_ADV_SCAN_IND    	0x02
+#define	BT_ADV_TYPE_ADV_NONCONN_IND     0x03
+#define	BT_ADV_TYPE_SCAN_RSP            0x04
+#define	BT_ADV_TYPE_EXT_ADV             0x05
+#define BT_ADV_TYPE_MAX					0x06
+
+/** EIR/AD data type definitions */
+#define BT_ADV_DATA_FLAGS                   0x01 /* AD flags */
+#define BT_ADV_DATA_UUID16_SOME             0x02 /* 16-bit UUID, more available */
+#define BT_ADV_DATA_UUID16_ALL              0x03 /* 16-bit UUID, all listed */
+#define BT_ADV_DATA_UUID32_SOME             0x04 /* 32-bit UUID, more available */
+#define BT_ADV_DATA_UUID32_ALL              0x05 /* 32-bit UUID, all listed */
+#define BT_ADV_DATA_UUID128_SOME            0x06 /* 128-bit UUID, more available */
+#define BT_ADV_DATA_UUID128_ALL             0x07 /* 128-bit UUID, all listed */
+#define BT_ADV_DATA_NAME_SHORTENED          0x08 /* Shortened name */
+#define BT_ADV_DATA_NAME_COMPLETE           0x09 /* Complete name */
+#define BT_ADV_DATA_TX_POWER                0x0a /* Tx Power */
+#define BT_ADV_DATA_SM_TK_VALUE             0x10 /* Security Manager TK Value */
+#define BT_ADV_DATA_SM_OOB_FLAGS            0x11 /* Security Manager OOB Flags */
+#define BT_ADV_DATA_SOLICIT16               0x14 /* Solicit UUIDs, 16-bit */
+#define BT_ADV_DATA_SOLICIT128              0x15 /* Solicit UUIDs, 128-bit */
+#define BT_ADV_DATA_SVC_DATA16              0x16 /* Service data, 16-bit UUID */
+#define BT_ADV_DATA_GAP_APPEARANCE          0x19 /* GAP appearance */
+#define BT_ADV_DATA_LE_BT_DEVICE_ADDRESS    0x1b /* LE Bluetooth Device Address */
+#define BT_ADV_DATA_LE_ROLE                 0x1c /* LE Role */
+#define BT_ADV_DATA_SOLICIT32               0x1f /* Solicit UUIDs, 32-bit */
+#define BT_ADV_DATA_SVC_DATA32              0x20 /* Service data, 32-bit UUID */
+#define BT_ADV_DATA_SVC_DATA128             0x21 /* Service data, 128-bit UUID */
+#define BT_ADV_DATA_LE_SC_CONFIRM_VALUE     0x22 /* LE SC Confirmation Value */
+#define BT_ADV_DATA_LE_SC_RANDOM_VALUE      0x23 /* LE SC Random Value */
+#define BT_ADV_DATA_URI                     0x24 /* URI */
+#define BT_ADV_DATA_LE_SUPPORTED_FEATURES   0x27 /* LE Supported Features */
+#define BT_ADV_DATA_CHANNEL_MAP_UPDATE_IND  0x28 /* Channel Map Update Indication */
+#define BT_ADV_DATA_MESH_PROV               0x29 /* Mesh Provisioning PDU */
+#define BT_ADV_DATA_MESH_MESSAGE            0x2a /* Mesh Networking PDU */
+#define BT_ADV_DATA_MESH_BEACON             0x2b /* Mesh Beacon */
+#define BT_ADV_DATA_BIG_INFO                0x2c /* BIGInfo */
+#define BT_ADV_DATA_BROADCAST_CODE          0x2d /* Broadcast Code */
+#define BT_ADV_DATA_CSIS_RSI                0x2e /* CSIS Random Set ID type */
+#define BT_ADV_DATA_MAX						0x2d
+
 
 typedef struct __packed {
 	uint16_t opcode;

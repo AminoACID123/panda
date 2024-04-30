@@ -225,7 +225,6 @@ evt_enum_stage:
 
   dry_run_le_event(afl, q, 0xEF, 10);
 
-
   for (int i = 0, n = hci_evt_cnt(); i < n; ++i) {
     hci_evt_format_t *fmt = get_hci_evt_by_index(i);
     enumerate_event(afl, q, fmt->opcode, fmt->size);

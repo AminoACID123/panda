@@ -3349,6 +3349,14 @@ STEXI
 Enable guest print in buzzer
 ETEXI
 
+DEF("enable-debug", 0, QEMU_OPTION_enable_debug, \
+    "-enable-debug     enable debug in buzzer\n", QEMU_ARCH_ALL)
+STEXI
+@item -enable-debug
+@findex -enable-debug
+Enable debug in buzzer
+ETEXI
+
 DEF("no-ui", 0, QEMU_OPTION_no_ui, \
     "-no-ui     disable AFL UI\n", QEMU_ARCH_ALL)
 STEXI

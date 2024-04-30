@@ -96,6 +96,7 @@ typedef struct buzzer_state {
   char crash_message[PATH_MAX];
   bool enable_guest_print;
   bool enable_asan;
+  bool enable_debug;
   bool no_ui, no_ack;
   int device_no;
 
