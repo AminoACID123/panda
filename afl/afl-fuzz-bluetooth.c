@@ -16,7 +16,7 @@ void emit_message(afl_state_t *afl, queue_entry_t *q, u32 i) {
   int ack;
   message_t *message = q->messages[i];
 
-  // qemu_hexdump(message->data, stdout, "Fuzz Send", message->size);
+  qemu_hexdump(message->data, stdout, "Fuzz Send", message->size);
 
   controller_send(message->data, message->size);
   afl->message_emitted = 1;
@@ -970,15 +970,15 @@ static void handle_le_set_scan_enable(afl_state_t *afl, queue_entry_t *q,
   bt_hci_cmd_le_set_scan_enable *cmd = (void *)cmd_hdr->params;
   emit_cmd_complete_success(afl, q, cmd_hdr->opcode);
   if (cmd->enable) {
-    const u8 adv_data[] = {0x02, 0x01, 0x06, 0x0b, 0x09, 0x42, 0x75, 0x7a,
-                           0x65, 0x72, 0x46, 0x75, 0x7a, 0x7a, 0x00};
+    const u8 adv_data[] = { 0x02, 0x01, 0x06, 0x0b, 0x09, 0x42, 0x75, 0x7a,
+                           0x65, 0x72, 0x46, 0x75, 0x7a, 0x7a, 0x00 };
     u8       rsp_data[255];
     bt_hci_evt_le_adv_report *rsp = (void *)rsp_data;
     rsp->num_reports = 1;
     rsp->event_type = 0;
     rsp->addr_type = 0;
     memcpy(rsp->addr, "remote", 6);
-    rsp->data_len = sizeof(adv_data);
+    rsp->data_len = sizeof(adv_data) - 1;
     memcpy(rsp->data, adv_data, sizeof(adv_data));
     emit_le_event(afl, q, BT_HCI_EVT_LE_ADV_REPORT, rsp,
                   sizeof(*rsp) + sizeof(adv_data));
